@@ -1,14 +1,23 @@
+% Author: Alexander Breuer, breuera AT in.tum.de
+%
+% This function deletes and recreates and net-cdf file at the specified path.
+% Its content is filled by a number of random values, which is asked for
+% during execution.
+%
 function[size] = create_nc_testphi(path)
 
-%250 meters should be enough (we dont want "extreme"-problems)
-maxWaterHeight = 250;
-maxHeightVariation = 50;
-%300km/h = 5000 m/s should be enough
-maxWaveSpeed = 5000;
-%25km/h = 416.6666 m/s;
-maxSpeedVariation = 416.666666;
-dryTol = 0.001;
-zeroTol = 0.0000001;
+%maximum depth of the ocean: 10923 meters
+maxWaterHeight = 10923;
+%variation of the Height in the Riemann-Problem (depends on the space discretization)
+maxHeightVariation = 500;
+%maximum velocity of the water particles: 10cm/s
+maxParticleSpeed = 0.1;
+%variation of the velocities: 5cm/s
+maxSpeedVariation = 0.05;
+%dry tolerance
+dryTol = 0.1;
+%zero tolerance
+zeroTol = 0.00001;
 
 %delete old file
 delete(path)
@@ -71,7 +80,7 @@ tic
   netcdf.putVar(ncid, varid, wallSize, randomSize, randHeights)
   
   %fill huLow with random values
-  randSpeeds = transpose((2*(rand(1, size)-0.5))*maxWaveSpeed);
+  randSpeeds = transpose((2*(rand(1, size)-0.5))*maxParticleSpeed);
   netcdf.sync(ncid); %sync before reading
   hLowVec = ncread(path, 'hLow', 1, size);
   %hu = h * u
@@ -101,10 +110,10 @@ ncwriteatt(path,'/','author','Alexander Breuer')
 ncwriteatt(path,'/','history', ...
   strcat(...
     'MATLAB R2011b, shallowwater.m (',...
-    'maxWaterHeight=', num2str(maxWaterHeight), ' maxHeightVariation=', num2str(maxHeightVariation), ' maxWaveSpeed=', num2str(maxWaveSpeed), ' maxSpeedVariation=', num2str(maxSpeedVariation), ' dryTol=', num2str(dryTol), ' zeroTol=', num2str(zeroTol)...
+    'maxWaterHeight=', num2str(maxWaterHeight), ' maxHeightVariation=', num2str(maxHeightVariation), ' maxParticleSpeed=', num2str(maxParticleSpeed), ' maxSpeedVariation=', num2str(maxSpeedVariation), ' dryTol=', num2str(dryTol), ' zeroTol=', num2str(zeroTol)...
     ,')'...
 ))
-ncwriteatt(path,'/','institution','Technische Universität München, Department of Informatics, Chair of Scientific Computing')
+ncwriteatt(path,'/','institution','Technische Universitaet Muenchen, Department of Informatics, Chair of Scientific Computing')
 ncwriteatt(path,'/','source','roots of an algebraic function')
 ncwriteatt(path,'/','references','http://www5.in.tum.de')
 

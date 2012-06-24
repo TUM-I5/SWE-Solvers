@@ -1,3 +1,8 @@
+% Author: Alexander Breuer, breuera AT in.tum.de
+%
+% This function computes the middle state of a given homogenous
+% Riemann-problem
+
 function[hStar] = calculate_hstar(hLow, hHigh, huLow, huHigh)
 %%% constants
 zeroTol = 0.00000001;
