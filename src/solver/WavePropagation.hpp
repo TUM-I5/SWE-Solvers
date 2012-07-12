@@ -31,7 +31,7 @@ template <typename T> class solver::WavePropagation {
   protected:
     //global variables
     //! numerical definition of "dry".
-    const T dryTol;
+    T dryTol;
     //! gravity constant
     const T g;
     //! numerical definition of zero.
@@ -192,6 +192,15 @@ template <typename T> class solver::WavePropagation {
                                      T &o_huUpdateLeft,
                                      T &o_huUpdateRight,
                                      T &o_maxWaveSpeed ) = 0;
+
+    /**
+     * Sets the dry tolerance of the solver.
+     *
+     * @param i_dryTolerance dry tolerance.
+     */
+    void setDryTolerance( const T i_dryTolerance ) {
+      dryTol = i_dryTolerance;
+    }
 
     virtual ~WavePropagation() {};
 
