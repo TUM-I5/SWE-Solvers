@@ -898,12 +898,14 @@ template <typename T> class solver::AugRie: public WavePropagation<T> {
 
           hMiddle = hMiddle - phi/derivativePhi; //Newton step
 
+          #ifndef NDEBUG
           if (hMiddle < hMin) {
             std::cout << phi << std::endl;
             std::cout << derivativePhi << std::endl;
             std::cerr << "hMiddle(" << hMiddle << ") < hMin(" << hMin << ")" << std::endl;
             assert(false);
           }
+          #endif
 
 //          if(i == i_maxNumberOfNewtonIterations-1) {
 //            std::cerr << "Newton-Method did not converge" << std::endl;
