@@ -61,6 +61,13 @@ const T zeroTol = (T) 0.0000001;
 //! numerical definition of a dry cell
 const T dryTol = (T) 100.;
 
+/*
+ * Visual C++ compiler doesn't allow the definitions above.
+ * Therefore the pre-compiler should be used.
+ */
+//#define zeroTol (T)0.0000001
+//#define dryTol (T)100.
+
 __device__
 void fWaveComputeNetUpdates( const T i_gravity,
                              T i_hLeft,  T i_hRight,
@@ -328,3 +335,7 @@ inline void fWaveComputeWaveDecomposition( const T i_gravity,
 //    io_waveSpeeds[1] = (T) 0.;
 //  }
 }
+
+// undefine the constants (see above)
+#undef zeroTol
+#undef dryTol
