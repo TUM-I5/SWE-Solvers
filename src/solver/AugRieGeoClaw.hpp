@@ -1,229 +1,75 @@
-/**
- * AugRieGeoClaw.hpp
+/** @file This file is part of the swe_solvers repository: https://github.com/TUM-I5/swe_solvers
  *
- ****
- **** Augmented Riemann solver which uses the underlying Fortran routines of GeoClaw directly.
- ****
+ * @author Alexander Breuer (breuera AT in.tum.de, http://www5.in.tum.de/wiki/index.php/Dipl.-Math._Alexander_Breuer)
  *
- *  Created on: Mar 13, 2012
- *  Last Update: Mar 14, 2012
+ * @section LICENSE
+ * This software was developed at Technische Universitaet Muenchen, who is the owner of the software.
  *
- ****
+ * According to good scientific practice, publications on results achieved in whole or in part due to this software should cite at least one paper or referring to an URL presenting the this software software.
  *
- *  Author: Alexander Breuer
- *    Homepage: http://www5.in.tum.de/wiki/index.php/Dipl.-Math._Alexander_Breuer
- *    E-Mail: breuera AT in.tum.de
+ * The owner wishes to make the software available to all users to use, reproduce, modify, distribute and redistribute also for commercial purposes under the following conditions of the original BSD license. Linking this software module statically or dynamically with other modules is making a combined work based on this software. Thus, the terms and conditions of this license cover the whole combination. As a special exception, the copyright holders of this software give you permission to link it with independent modules or to instantiate templates and macros from this software's source files to produce an executable, regardless of the license terms of these independent modules, and to copy and distribute the resulting executable under terms of your choice, provided that you also meet, for each linked independent module, the terms and conditions of this license of that module.
  *
- ****
+ * Copyright (c) 2012
+ * Technische Universitaet Muenchen
+ * Department of Informatics
+ * Chair of Scientific Computing
+ * http://www5.in.tum.de/
  *
- * (Main) Literature:
+ * All rights reserved.
  *
- *   @webpage{levequeclawpack,
- *            Author = {LeVeque, R. J.},
- *            Lastchecked = {Mar, 14, 2011},
- *            Title = {Clawpack Sofware},
- *            Url = {https://github.com/clawpack/geoclaw}
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  *
+ * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * All advertising materials mentioning features or use of this software must display the following acknowledgement: This product includes software developed by the Technische Universitaet Muenchen (TUM), Germany, and its contributors.
+ * Neither the name of the Technische Universitaet Muenchen, Munich, Germany nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
  *
- ****
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Acknowledgments:
- *   Special thanks go to R.J. LeVeque and D.L. George for publishing their code.
+ * @section DESCRIPTION
+ * Binds GeoClaw's augmented solver to C.
+ *
+ * @section ACKNOWLEDGMENTS
+ * Special thanks go to R.J. LeVeque and D.L. George for publishing their code.
  */
 
-#ifndef AUGRIEGEOCLAW_HPP_
-#define AUGRIEGEOCLAW_HPP_
-
-#include <cassert>
-#include <cmath>
-#include "WavePropagation.hpp"
+//number of f-waves in the Problem (2 shock linearization = 2, augmented = 3)
+#ifndef NUMBER_OF_FWAVES
+#define NUMBER_OF_FWAVES 3
+#endif
 
 /**
- * Extern declaration of the c_bing_geoclaw_riemann_aug_JCP routine.
- *
- * Remark: Not constant variables might change during execution.
+ * Extern declaration of the c_bing_geoclaw_riemann_aug_JCP routine (fixed arrays).
  *
  * @param i_maxNumberOfRiemannIterations maximum number Riemann iterations (solver might iterate over the Riemann problem one day, currently fixed to 1)
- * @param i_numberOfFWaves number of fWaves (might change to 2 for standard f-Wave solver for example, currently fixed to 3)
- * @param i_hLeft height on the left side of the edge.
- * @param i_hRight height on the right side of the edge.
- * @param i_huLeft momentum on the left side of the edge in normal direction.
- * @param i_huRight momentum on the right side of the edge in normal direction.
- * @param i_hvLeft momentum on the left side of the edge in parallel direction.
- * @param i_hvRight momentum on the right side of the edge in parallel direction.
- * @param i_bLeft bathymetry on the left side of the edge.
- * @param i_bRight bathymetry on the right side of the edge.
+ * @param i_variablesLeft array containing variables of the left cell: $(h_l, hu_l, b_l)^T$
+ * @param i_variablesRight array containing variables of the right cell: $(h_l, hu_l, b_l)^T$
  * @param i_dryTol dry tolerance (definition of wet/dry cells).
  * @param i_g gravity constant (typically 9.81).
  * @param o_netUpdatesLeft will be set to: Net-update for the height(0)/normal momentum(1)/parallel momentum(2) of the cell on the left side of the edge.
  * @param o_netUpdatesRight will be set to: Net-update for the height(0)/normal momentum(1)/parallel momentum(2) of the cell on the right side of the edge.
- * @param o_maxWaveSpeed will be set to: Maximum (linearized) wave speed -> Should be used in the CFL-condition.
+ * @param o_waveSpeeds will be set to: (linearized) wave speeds -> Should be used in the CFL-condition.
  */
-extern "C" void c_bind_geoclaw_riemann_aug_JCP( const int &i_maxNumberOfRiemannIterations, const int &i_numberOfFWaves,
-                                                double &i_hLeft,   double &i_hRight,
-                                                double &i_huLeft,  double &i_huRight,
-                                                double &i_hvLeft,  double &i_hvRight,
-                                                double &i_bLeft,   double &i_bRight,
+extern "C" void c_bind_geoclaw_riemann_aug_JCP( const int &i_maxNumberOfRiemannIterations,
+                                                const double i_variablesLeft[3], const double i_variablesRight[3],
                                                 const double &i_dryTol, const double &i_g,
                                                 double o_netUpdatesLeft[3], double o_netUpdatesRight[3],
-                                                double &o_maxWaveSpeed);
-
-namespace solver {
-  template <typename T> class AugRieGeoClaw;
-}
+                                                double o_waveSpeeds[NUMBER_OF_FWAVES] );
 
 /**
- *  Augmented Riemann solver which uses the underlying Fortran routines of GeoClaw directly.
+ * Extern declaration of the c_bing_geoclaw_riemann_aug_JCP routine (pointers).
  *
- *  T should be double or float. (currently fixed to double precision)
+ * @param i_maxNumberOfRiemannIterations maximum number Riemann iterations (solver might iterate over the Riemann problem one day, currently fixed to 1)
+ * @param i_variablesLeft array containing variables of the left cell: $(h_l, hu_l, b_l)^T$
+ * @param i_variablesRight array containing variables of the right cell: $(h_l, hu_l, b_l)^T$
+ * @param i_dryTol dry tolerance (definition of wet/dry cells).
+ * @param i_g gravity constant (typically 9.81).
+ * @param o_netUpdatesLeft will be set to: Net-update for the height(0)/normal momentum(1)/parallel momentum(2) of the cell on the left side of the edge.
+ * @param o_netUpdatesRight will be set to: Net-update for the height(0)/normal momentum(1)/parallel momentum(2) of the cell on the right side of the edge.
+ * @param o_waveSpeeds will be set to: (linearized) wave speeds -> Should be used in the CFL-condition.
  */
-template <typename T> class solver::AugRieGeoClaw: public WavePropagation<T> {
-  //private:
-    //use nondependent names (template base class)
-    using solver::WavePropagation<T>::zeroTol;
-    using solver::WavePropagation<T>::g;
-    using solver::WavePropagation<T>::dryTol;
-
-    using solver::WavePropagation<T>::hLeft;
-    using solver::WavePropagation<T>::hRight;
-    using solver::WavePropagation<T>::huLeft;
-    using solver::WavePropagation<T>::huRight;
-    using solver::WavePropagation<T>::bLeft;
-    using solver::WavePropagation<T>::bRight;
-    using solver::WavePropagation<T>::uLeft;
-    using solver::WavePropagation<T>::uRight;
-
-    using solver::WavePropagation<T>::storeParameters;
-
-    //! momentum on the left side of the edge (could change during execution) in parallel direction.
-    T hvLeft;
-    //! momentum on the right side of the edge (could change during execution) in parallel direction.
-    T hvRight;
-
-    //! number of iterations over the Riemann problem (not used)
-    const int maxNumberOfRiemannIterations;
-
-    /**
-     * Implemented within the GeoClaw-Fortran routines. Not used here.
-     */
-    void determineWetDryState() {assert(false);}
-
-    /**
-     * Store parameters to member variables.
-     *
-     * @param i_hLeft height on the left side of the edge.
-     * @param i_hRight height on the right side of the edge.
-     * @param i_huLeft momentum on the left side of the edge in normal direction.
-     * @param i_huRight momentum on the right side of the edge in normal direction.
-     * @param i_hvLeft momentum on the left side of the edge in parallel direction.
-     * @param i_hvRight momentum on the right side of the edge in parallel direction.
-     * @param i_bLeft bathymetry on the left side of the edge.
-     * @param i_bRight bathymetry on the right side of the edge.
-     */
-    inline void storeParameters( const T &i_hLeft,  const T &i_hRight,
-                                 const T &i_huLeft, const T &i_huRight,
-                                 const T &i_hvLeft, const T &i_hvRight,
-                                 const T &i_bLeft,  const T &i_bRight ) {
-      //store common parameters to member variables
-      storeParameters( i_hLeft,  i_hRight,
-                       i_huLeft, i_huRight,
-                       i_bLeft,  i_bRight );
-
-      hvLeft = i_hvLeft;
-      hvRight = i_hvRight;
-    }
-
-  public:
-    /**
-     * Constructor of the GeoClaw Augmented Riemann solver with optional parameters.
-     *
-     * @param i_dryTolerance numerical definition of "dry".
-     * @param i_gravity gravity constant.
-     * @param i_zeroTolerance numerical definition of zero (currently not used).
-     * @param i_maxNumberOfRiemannIterations maximum number Riemann iterations (solver might iterate over the Riemann problem one day, currently fixed to 1)
-     */
-    AugRieGeoClaw( T i_dryTolerance =  (T) 0.01,
-                   T i_gravity =       (T) 9.81,
-                   T i_zeroTolerance = (T) 0.000000001,
-                   int i_maxNumberOfRiemannIterations = 1 ):
-                     WavePropagation<T>( i_dryTolerance, i_gravity, i_zeroTolerance ),
-                     maxNumberOfRiemannIterations(i_maxNumberOfRiemannIterations){};
-
-    /**
-     * Not implemented.
-     */
-    void computeNetUpdates ( const T &i_hLeft,  const T &i_hRight,
-                             const T &i_huLeft, const T &i_huRight,
-                             const T &i_bLeft,  const T &i_bRight,
-
-                             T &o_hUpdateLeft,
-                             T &o_hUpdateRight,
-                             T &o_huUpdateLeft,
-                             T &o_huUpdateRight,
-                             T &o_maxWaveSpeed ) {
-      //not implemented
-      assert(false);
-    }
-
-    /**
-     * Compute net updates for the cell on the left/right side of the edge.
-     *
-     * @param i_hLeft height on the left side of the edge.
-     * @param i_hRight height on the right side of the edge.
-     * @param i_huLeft momentum on the left side of the edge in normal direction.
-     * @param i_huRight momentum on the right side of the edge in normal direction.
-     * @param i_hvLeft momentum on the left side of the edge in parallel direction.
-     * @param i_hvRight momentum on the right side of the edge in parallel direction.
-     * @param i_bLeft bathymetry on the left side of the edge.
-     * @param i_bRight bathymetry on the right side of the edge.
-     *
-     * @param o_hUpdateLeft will be set to: Net-update for the height of the cell on the left side of the edge.
-     * @param o_hUpdateRight will be set to: Net-update for the height of the cell on the right side of the edge.
-     * @param o_huUpdateLeft will be set to: Net-update for the momentum of the cell on the left side of the edge in normal direction.
-     * @param o_huUpdateRight will be set to: Net-update for the momentum of the cell on the right side of the edge in normal direction.
-     * @param o_hvUpdateLeft will be set to: Net-update for the momentum of the cell on the left side of the edge in parallel direction.
-     * @param o_hvUpdateRight will be set to: Net-update for the momentum of the cell on the right side of the edge in parallel direction.
-     * @param o_maxWaveSpeed will be set to: Maximum (linearized) wave speed -> Should be used in the CFL-condition.
-     */
-    void computeNetUpdates ( const T &i_hLeft,  const T &i_hRight,
-                             const T &i_huLeft, const T &i_huRight,
-                             const T &i_hvLeft, const T &i_hvRight,
-                             const T &i_bLeft,  const T &i_bRight,
-
-                             T &o_hUpdateLeft,
-                             T &o_hUpdateRight,
-                             T &o_huUpdateLeft,
-                             T &o_huUpdateRight,
-                             T &o_hvUpdateLeft,
-                             T &o_hvUpdateRight,
-                             T &o_maxWaveSpeed ) {
-      // store parameters to member variables
-      storeParameters( i_hLeft, i_hRight,
-                       i_huLeft, i_huRight,
-                       i_hvLeft, i_hvRight,
-                       i_bLeft, i_bRight );
-
-      double netUpdatesLeft[3], netUpdatesRight[3];
-
-      c_bind_geoclaw_riemann_aug_JCP( maxNumberOfRiemannIterations, 3,
-                                      hLeft,   hRight,
-                                      huLeft,  huRight,
-                                      hvLeft,  hvRight,
-                                      bLeft,   bRight,
-                                      dryTol, g,
-                                      netUpdatesLeft, netUpdatesRight,
-                                      o_maxWaveSpeed );
-
-      //copy net-updates
-      o_hUpdateLeft = netUpdatesLeft[0];
-      o_hUpdateRight = netUpdatesRight[0];
-
-      o_huUpdateLeft = netUpdatesLeft[1];
-      o_huUpdateRight = netUpdatesRight[1];
-
-      o_hvUpdateLeft = netUpdatesLeft[2];
-      o_hvUpdateRight = netUpdatesRight[2];
-    }
-};
-
-#endif /* AUGRIEGEOCLAW_HPP_ */
+extern "C" void c_bind_geoclaw_riemann_aug_JCP( const int &i_maxNumberOfRiemannIterations,
+                                                const double* i_variablesLeft, const double* i_variablesRight,
+                                                const double &i_dryTol, const double &i_g,
+                                                double* o_netUpdatesLeft, double* o_netUpdatesRight,
+                                                double* o_waveSpeeds );
