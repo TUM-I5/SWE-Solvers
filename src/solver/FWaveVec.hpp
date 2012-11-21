@@ -86,21 +86,22 @@ public:
                              T &o_maxWaveSpeed ) const
 	{
 		  // determine the wet dry state and corr. values, if necessary.
-		  // (voodoo magic to work around if-else statements)
-		  bool hDryTol = i_hLeft >= dryTol;
-		  i_hLeft = hDryTol*i_hLeft + (!hDryTol)*i_hRight;
-		  i_huLeft = hDryTol*i_huLeft + (!hDryTol)*(-i_huRight);
-		  i_bLeft = hDryTol*i_bLeft + (!hDryTol)*i_bRight;
-
-		  hDryTol = i_hRight >= dryTol;
-		  i_hRight = hDryTol*i_hRight + (!hDryTol)*i_hLeft;
-		  i_huRight = hDryTol*i_huRight + (!hDryTol)*(-i_huLeft);
-		  i_bRight = hDryTol*i_bRight + (!hDryTol)*i_bLeft;
-
-		  // If both cell are dry, make sure we get no waves
-		  hDryTol = i_hLeft >= dryTol || i_hRight >= dryTol;
-		  i_hLeft = hDryTol*i_hLeft + (!hDryTol)*dryTol;
-		  i_hRight = hDryTol*i_hRight + (!hDryTol)*dryTol;
+		  if( i_hLeft < dryTol && i_hRight < dryTol ) {
+		      // Dry/Dry case
+		      // Set dummy values such that the result is zero
+		      i_hLeft = dryTol;
+		      i_huLeft = 0.; i_bLeft = 0.;
+		      i_hRight = dryTol;
+		      i_huRight = 0.; i_bRight = 0.;
+		  } else if ( i_hLeft < dryTol ) {
+		      i_hLeft = i_hRight;
+		      i_huLeft = -i_huRight;
+		      i_bLeft = i_bRight;
+		  } else if ( i_hRight < dryTol ) {
+		      i_hRight = i_hLeft;
+		      i_huRight = -i_huLeft;
+		      i_bRight = i_bLeft;
+		  }
 
 		  //! velocity on the left side of the edge
 		  T uLeft = i_huLeft / i_hLeft;
@@ -108,7 +109,7 @@ public:
 		  T uRight = i_huRight / i_hRight;
 
 		  //! wave speeds of the f-waves
-		  T waveSpeed[2];
+		  T waveSpeeds[2];
 
 		  //compute the wave speeds
 		  fWaveComputeWaveSpeeds( i_hLeft, i_hRight,
@@ -116,10 +117,10 @@ public:
 		                          uLeft, uRight,
 		                          i_bLeft, i_bRight,
 
-		                          waveSpeed[0], waveSpeed[1] );
+		                          waveSpeeds[0], waveSpeeds[1] );
 
 		  //! where to store the two f-waves
-		  T fWave[2];
+		  T fWaves[2];
 
 		  //compute the decomposition into f-waves
 		  fWaveComputeWaveDecomposition( i_hLeft, i_hRight,
@@ -127,38 +128,55 @@ public:
 		                                 uLeft, uRight,
 		                                 i_bLeft, i_bRight,
 
-		                                 waveSpeed[0], waveSpeed[1],
-		                                 fWave[0], fWave[1]);
+		                                 waveSpeeds[0], waveSpeeds[1],
+		                                 fWaves[0], fWaves[1]);
 
-		  //compute the net-updates (some more voodoo magic)
+		  //compute the net-updates
+		  T hUpdateLeft = 0.;
+		  T hUpdateRight = 0.;
+		  T huUpdateLeft = 0.;
+		  T huUpdateRight = 0.;
+
 		  //1st wave family
-		  bool waveSpeedZeroTol = std::abs(waveSpeed[0]) > zeroTol;
-		  bool waveSpeedPositive = waveSpeed[0] > 0;
-
-		  o_hUpdateLeft =   ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*(!waveSpeedPositive))
-				* fWave[0];
-		  o_huUpdateLeft =  ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*(!waveSpeedPositive))
-				* fWave[0] * waveSpeed[0];
-		  o_hUpdateRight =  ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*waveSpeedPositive)
-				* fWave[0];
-		  o_huUpdateRight = ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*waveSpeedPositive)
-				* fWave[0] * waveSpeed[0];
+		  if(waveSpeeds[0] < -zeroTol) { //left going
+		    hUpdateLeft +=  fWaves[0];
+		    huUpdateLeft += fWaves[0] * waveSpeeds[0];
+		  }
+		  else if(waveSpeeds[0] > zeroTol) { //right going
+		    hUpdateRight +=  fWaves[0];
+		    huUpdateRight += fWaves[0] * waveSpeeds[0];
+		  }
+		  else { //split waves
+		    hUpdateLeft +=   (T).5*fWaves[0];
+		    huUpdateLeft +=  (T).5*fWaves[0] * waveSpeeds[0];
+		    hUpdateRight +=  (T).5*fWaves[0];
+		    huUpdateRight += (T).5*fWaves[0] * waveSpeeds[0];
+		  }
 
 		  //2nd wave family
-		  waveSpeedZeroTol = std::abs(waveSpeed[1]) > zeroTol;
-		  waveSpeedPositive = waveSpeed[1] > 0;
+		  if(waveSpeeds[1] < -zeroTol) { //left going
+		    hUpdateLeft +=  fWaves[1];
+		    huUpdateLeft += fWaves[1] * waveSpeeds[1];
+		  }
+		  else if(waveSpeeds[1] > zeroTol) {
+		    hUpdateRight +=  fWaves[1];
+		    huUpdateRight += fWaves[1] * waveSpeeds[1];
+		  }
+		  else { //split waves
+		    hUpdateLeft +=   (T).5*fWaves[1];
+		    huUpdateLeft +=  (T).5*fWaves[1] * waveSpeeds[1];
+		    hUpdateRight +=  (T).5*fWaves[1];
+		    huUpdateRight += (T).5*fWaves[1] * waveSpeeds[1];
+		  }
 
-		  o_hUpdateLeft +=   ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*(!waveSpeedPositive))
-				 * fWave[1];
-		  o_huUpdateLeft +=  ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*(!waveSpeedPositive))
-				 * fWave[1] * waveSpeed[1];
-		  o_hUpdateRight +=  ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*waveSpeedPositive)
-				 * fWave[1];
-		  o_huUpdateRight += ((!waveSpeedZeroTol)*(T).5 + waveSpeedZeroTol*waveSpeedPositive)
-				 * fWave[1] * waveSpeed[1];
+		  // Set output variables
+		  o_hUpdateLeft = hUpdateLeft;
+		  o_hUpdateRight = hUpdateRight;
+		  o_huUpdateLeft = huUpdateLeft;
+		  o_huUpdateRight = huUpdateRight;
 
 		  //compute maximum wave speed (-> CFL-condition)
-		  o_maxWaveSpeed = std::max( std::abs(waveSpeed[0]) , std::abs(waveSpeed[1]) );
+		  o_maxWaveSpeed = std::max( std::abs(waveSpeeds[0]) , std::abs(waveSpeeds[1]) );
     }
 
 	inline
