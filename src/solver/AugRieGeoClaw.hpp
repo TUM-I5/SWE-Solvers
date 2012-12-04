@@ -54,7 +54,11 @@ extern "C" void c_bind_geoclaw_riemann_aug_JCP( const int &i_maxNumberOfRiemannI
                                                 const double i_variablesLeft[3], const double i_variablesRight[3],
                                                 const double &i_dryTol, const double &i_g,
                                                 double o_netUpdatesLeft[3], double o_netUpdatesRight[3],
-                                                double o_waveSpeeds[NUMBER_OF_FWAVES] );
+                                                double o_waveSpeeds[NUMBER_OF_FWAVES]
+#if AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+                                               ,double o_eigenCoefficients[NUMBER_OF_FWAVES]
+#endif
+                                              );
 
 /**
  * Extern declaration of the c_bing_geoclaw_riemann_aug_JCP routine (pointers).
@@ -72,4 +76,8 @@ extern "C" void c_bind_geoclaw_riemann_aug_JCP( const int &i_maxNumberOfRiemannI
                                                 const double* i_variablesLeft, const double* i_variablesRight,
                                                 const double &i_dryTol, const double &i_g,
                                                 double* o_netUpdatesLeft, double* o_netUpdatesRight,
-                                                double* o_waveSpeeds );
+                                                double* o_waveSpeeds
+#if AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+                                               ,double* o_eigenCoefficients
+#endif
+                                                );

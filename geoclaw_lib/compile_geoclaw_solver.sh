@@ -1,5 +1,5 @@
 #!/bin/bash
 
-GEOCLAWSRCPATH=../src/solver/geoclaw
+GEOCLAWSRCPATH=../../geoclaw/src/2d/
 
-ifort -w -g -c $GEOCLAWSRCPATH/riemannsolvers.f $GEOCLAWSRCPATH/c_bind_riemannsolvers.f90
+ifort -w -g -c -fpp $GEOCLAWSRCPATH/riemannsolvers.f $GEOCLAWSRCPATH/c_bind_riemannsolvers.f90
