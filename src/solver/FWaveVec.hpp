@@ -154,13 +154,13 @@ public:
 		  }
 
 		  //2nd wave family
-		  if(waveSpeeds[1] < -zeroTol) { //left going
-		    hUpdateLeft +=  fWaves[1];
-		    huUpdateLeft += fWaves[1] * waveSpeeds[1];
-		  }
-		  else if(waveSpeeds[1] > zeroTol) {
+		  if(waveSpeeds[1] > zeroTol) { //right going
 		    hUpdateRight +=  fWaves[1];
 		    huUpdateRight += fWaves[1] * waveSpeeds[1];
+		  }
+		  else if(waveSpeeds[1] < -zeroTol) { //left going
+			hUpdateLeft +=  fWaves[1];
+			huUpdateLeft += fWaves[1] * waveSpeeds[1];
 		  }
 		  else { //split waves
 		    hUpdateLeft +=   (T).5*fWaves[1];
