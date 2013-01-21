@@ -54,7 +54,7 @@
 #define FWAVE_HPP_
 
 #include <cassert>
-#include <cmath>
+#include <algorithm>
 #include "WavePropagation.hpp"
 
 namespace solver {
