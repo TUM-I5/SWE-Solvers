@@ -109,7 +109,7 @@ public:
 		  T uRight = i_huRight / i_hRight;
 
 		  //! wave speeds of the f-waves
-		  T waveSpeeds[2];
+		  T waveSpeeds0 = 0., waveSpeeds1 = 0.;
 
 		  //compute the wave speeds
 		  fWaveComputeWaveSpeeds( i_hLeft, i_hRight,
@@ -117,10 +117,10 @@ public:
 		                          uLeft, uRight,
 		                          i_bLeft, i_bRight,
 
-		                          waveSpeeds[0], waveSpeeds[1] );
+		                          waveSpeeds0, waveSpeeds1 );
 
 		  //! where to store the two f-waves
-		  T fWaves[2];
+		  T fWaves0 = 0., fWaves1 = 0.;
 
 		  //compute the decomposition into f-waves
 		  fWaveComputeWaveDecomposition( i_hLeft, i_hRight,
@@ -128,8 +128,8 @@ public:
 		                                 uLeft, uRight,
 		                                 i_bLeft, i_bRight,
 
-		                                 waveSpeeds[0], waveSpeeds[1],
-		                                 fWaves[0], fWaves[1]);
+		                                 waveSpeeds0, waveSpeeds1,
+		                                 fWaves0, fWaves1);
 
 		  //compute the net-updates
 		  T hUpdateLeft = 0.;
@@ -138,35 +138,35 @@ public:
 		  T huUpdateRight = 0.;
 
 		  //1st wave family
-		  if(waveSpeeds[0] < -zeroTol) { //left going
-		    hUpdateLeft +=  fWaves[0];
-		    huUpdateLeft += fWaves[0] * waveSpeeds[0];
+		  if(waveSpeeds0 < -zeroTol) { //left going
+		    hUpdateLeft +=  fWaves0;
+		    huUpdateLeft += fWaves0 * waveSpeeds0;
 		  }
-		  else if(waveSpeeds[0] > zeroTol) { //right going
-		    hUpdateRight +=  fWaves[0];
-		    huUpdateRight += fWaves[0] * waveSpeeds[0];
+		  else if(waveSpeeds0 > zeroTol) { //right going
+		    hUpdateRight +=  fWaves0;
+		    huUpdateRight += fWaves0 * waveSpeeds0;
 		  }
 		  else { //split waves
-		    hUpdateLeft +=   (T).5*fWaves[0];
-		    huUpdateLeft +=  (T).5*fWaves[0] * waveSpeeds[0];
-		    hUpdateRight +=  (T).5*fWaves[0];
-		    huUpdateRight += (T).5*fWaves[0] * waveSpeeds[0];
+		    hUpdateLeft +=   (T).5*fWaves0;
+		    huUpdateLeft +=  (T).5*fWaves0 * waveSpeeds0;
+		    hUpdateRight +=  (T).5*fWaves0;
+		    huUpdateRight += (T).5*fWaves0 * waveSpeeds0;
 		  }
 
 		  //2nd wave family
-		  if(waveSpeeds[1] > zeroTol) { //right going
-		    hUpdateRight +=  fWaves[1];
-		    huUpdateRight += fWaves[1] * waveSpeeds[1];
+		  if(waveSpeeds1 > zeroTol) { //right going
+		    hUpdateRight +=  fWaves1;
+		    huUpdateRight += fWaves1 * waveSpeeds1;
 		  }
-		  else if(waveSpeeds[1] < -zeroTol) { //left going
-			hUpdateLeft +=  fWaves[1];
-			huUpdateLeft += fWaves[1] * waveSpeeds[1];
+		  else if(waveSpeeds1 < -zeroTol) { //left going
+			hUpdateLeft +=  fWaves1;
+			huUpdateLeft += fWaves1 * waveSpeeds1;
 		  }
 		  else { //split waves
-		    hUpdateLeft +=   (T).5*fWaves[1];
-		    huUpdateLeft +=  (T).5*fWaves[1] * waveSpeeds[1];
-		    hUpdateRight +=  (T).5*fWaves[1];
-		    huUpdateRight += (T).5*fWaves[1] * waveSpeeds[1];
+		    hUpdateLeft +=   (T).5*fWaves1;
+		    huUpdateLeft +=  (T).5*fWaves1 * waveSpeeds1;
+		    hUpdateRight +=  (T).5*fWaves1;
+		    huUpdateRight += (T).5*fWaves1 * waveSpeeds1;
 		  }
 
 		  // Set output variables
@@ -176,7 +176,7 @@ public:
 		  o_huUpdateRight = huUpdateRight;
 
 		  //compute maximum wave speed (-> CFL-condition)
-		  o_maxWaveSpeed = std::max( std::abs(waveSpeeds[0]) , std::abs(waveSpeeds[1]) );
+		  o_maxWaveSpeed = std::max( std::abs(waveSpeeds0) , std::abs(waveSpeeds1) );
     }
 
 	inline
@@ -189,22 +189,22 @@ public:
             T &o_waveSpeed0, T &o_waveSpeed1 ) const
 	{
 		//compute eigenvalues of the jacobian matrices in states Q_{i-1} and Q_{i}
-		T characteristicSpeed[2];
-		characteristicSpeed[0] = i_uLeft - std::sqrt(gravity*i_hLeft);
-		characteristicSpeed[1] = i_uRight + std::sqrt(gravity*i_hRight);
+		T characteristicSpeed0 = 0., characteristicSpeed1 = 0.;
+		characteristicSpeed0 = i_uLeft - std::sqrt(gravity*i_hLeft);
+		characteristicSpeed1 = i_uRight + std::sqrt(gravity*i_hRight);
 
 		//compute "Roe speeds"
 		T hRoe = (T).5 * (i_hRight + i_hLeft);
 		T uRoe = i_uLeft * std::sqrt(i_hLeft) + i_uRight * std::sqrt(i_hRight);
 		uRoe /= std::sqrt(i_hLeft) + std::sqrt(i_hRight);
 
-		T roeSpeed[2];
-		roeSpeed[0] = uRoe - std::sqrt(gravity*hRoe);
-		roeSpeed[1] = uRoe + std::sqrt(gravity*hRoe);
+		T roeSpeed0 = 0., roeSpeed1 = 0.;
+		roeSpeed0 = uRoe - std::sqrt(gravity*hRoe);
+		roeSpeed1 = uRoe + std::sqrt(gravity*hRoe);
 
 		//computer eindfeldt speeds
-		o_waveSpeed0 = std::min(characteristicSpeed[0], roeSpeed[0]);
-		o_waveSpeed1 = std::max(characteristicSpeed[1], roeSpeed[1]);
+		o_waveSpeed0 = std::min(characteristicSpeed0, roeSpeed0);
+		o_waveSpeed1 = std::max(characteristicSpeed1, roeSpeed1);
 	}
 
 	inline
@@ -220,31 +220,31 @@ public:
 	  T lambdaDif = i_waveSpeed1 - i_waveSpeed0;
 
 	  //compute the inverse matrix R^{-1}
-	  T Rinv[2][2];
+	  T Rinv00 = 0., Rinv01 = 0., Rinv10 = 0., Rinv11 = 0.;
 
 	  T oneDivLambdaDif = (T)1. /  lambdaDif;
-	  Rinv[0][0] = oneDivLambdaDif *  i_waveSpeed1;
-	  Rinv[0][1] = -oneDivLambdaDif;
+	  Rinv00 = oneDivLambdaDif *  i_waveSpeed1;
+	  Rinv01 = -oneDivLambdaDif;
 
-	  Rinv[1][0] = oneDivLambdaDif * -i_waveSpeed0;
-	  Rinv[1][1] = oneDivLambdaDif;
+	  Rinv10 = oneDivLambdaDif * -i_waveSpeed0;
+	  Rinv11 = oneDivLambdaDif;
 
 	  //right hand side
-	  T fDif[2];
+	  T fDif0 = 0., fDif1 = 0.;
 
 	  //calculate modified (bathymetry!) flux difference
 	  // f(Q_i) - f(Q_{i-1})
-	  fDif[0] = i_huRight - i_huLeft;
-	  fDif[1] = i_huRight * i_uRight + (T).5 * gravity * i_hRight * i_hRight
+	  fDif0 = i_huRight - i_huLeft;
+	  fDif1 = i_huRight * i_uRight + (T).5 * gravity * i_hRight * i_hRight
 	          -(i_huLeft  * i_uLeft  + (T).5 * gravity * i_hLeft  * i_hLeft);
 
 	  // \delta x \Psi[2]
 	  T psi = -gravity * (T).5 * (i_hRight + i_hLeft)*(i_bRight - i_bLeft);
-	  fDif[1] -= psi;
+	  fDif1 -= psi;
 
 	  //solve linear equations
-	  o_fWave0 = Rinv[0][0] * fDif[0] + Rinv[0][1] * fDif[1];
-	  o_fWave1 = Rinv[1][0] * fDif[0] + Rinv[1][1] * fDif[1];
+	  o_fWave0 = Rinv00 * fDif0 + Rinv01 * fDif1;
+	  o_fWave1 = Rinv10 * fDif0 + Rinv11 * fDif1;
 	}
 };
 
