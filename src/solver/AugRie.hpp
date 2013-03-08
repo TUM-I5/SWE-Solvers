@@ -229,7 +229,11 @@ template <typename T> class solver::AugRie: public WavePropagation<T> {
                              T &o_hUpdateRight,
                              T &o_huUpdateLeft,
                              T &o_huUpdateRight,
-                             T &o_maxWaveSpeed ) {
+                             T &o_maxWaveSpeed
+#if CONFIG_TSUNAMI_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+                            ,T  o_eigenCoefficients[3]
+#endif
+                            ) {
       // store parameters to member variables
       storeParameters( i_hLeft, i_hRight,
                        i_huLeft, i_huRight,
@@ -241,6 +245,11 @@ template <typename T> class solver::AugRie: public WavePropagation<T> {
       //reset net updates and the maximum wave speed
       o_hUpdateLeft = o_hUpdateRight = o_huUpdateLeft = o_huUpdateRight  = (T)0.;
       o_maxWaveSpeed = (T)0.;
+      
+#if CONFIG_TSUNAMI_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+      // reset eigen coefficients
+      o_eigenCoefficients[0] = o_eigenCoefficients[1] = o_eigenCoefficients[2] = 0;
+#endif
 
       //determine the wet/dry state and compute local variables correspondingly
       determineWetDryState();
@@ -266,7 +275,11 @@ template <typename T> class solver::AugRie: public WavePropagation<T> {
       //compute the augmented decomposition
       //  (thats the place where the computational work is done..)
       computeWaveDecomposition( fWaves,
-                                waveSpeeds );
+                                waveSpeeds
+#if CONFIG_TSUNAMI_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+                               ,o_eigenCoefficients
+#endif
+                               );
 
 
       //compute the updates from the three propagating waves
@@ -424,7 +437,11 @@ template <typename T> class solver::AugRie: public WavePropagation<T> {
      * @param o_waveSpeeds will be set to: speeds of the linearized waves (eigenvalues).
      */
     inline void computeWaveDecomposition( T o_fWaves[3][2],
-                                          T o_waveSpeeds[3] )	{
+                                          T o_waveSpeeds[3]
+#if CONFIG_TSUNAMI_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+                                         ,T o_eigenCoefficients[3]
+#endif
+                                         )	{
       //compute eigenvalues of the jacobian matrices in states Q_{i-1} and Q_{i} (char. speeds)
       T characteristicSpeeds[2];
       characteristicSpeeds[0] = uLeft - sqrt_g_hLeft;
@@ -674,6 +691,10 @@ template <typename T> class solver::AugRie: public WavePropagation<T> {
         for (int waveNumber = 0; waveNumber < 3; waveNumber++) {
           o_fWaves[waveNumber][0] = beta[waveNumber] * eigenVectors[1][waveNumber];  //select 2nd and
           o_fWaves[waveNumber][1] = beta[waveNumber] * eigenVectors[2][waveNumber];  //3rd component of the augmented decomposition
+#if CONFIG_TSUNAMI_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+          // store eigen-coefficients
+          o_eigenCoefficients[waveNumber] = beta[waveNumber];
+#endif
         }
 
         o_waveSpeeds[0] = eigenValues[0];

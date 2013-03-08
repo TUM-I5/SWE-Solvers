@@ -191,7 +191,11 @@ template <typename T> class solver::WavePropagation {
                                      T &o_hUpdateRight,
                                      T &o_huUpdateLeft,
                                      T &o_huUpdateRight,
-                                     T &o_maxWaveSpeed ) = 0;
+                                     T &o_maxWaveSpeed
+#if CONFIG_TSUNAMI_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS
+                                    ,T  o_eigenCoefficients[3]
+#endif
+                                   ) = 0;
 
     /**
      * Sets the dry tolerance of the solver.
