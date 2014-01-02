@@ -73,7 +73,7 @@ public:
 	 * @param gravity takes the value of the gravity constant (default value is 9.81 m/s^2)
 	 * @param zeroTol computed f-waves with an absolute value < zeroTol are treated as static waves (default value is 10^{-7})
 	 */
-	FWaveVec(T i_dryTol = (T) 100,
+	FWaveVec(T i_dryTol = (T) 1.0,
 			 T i_gravity = (T) 9.81,
 			 T i_zeroTol = (T) 0.0000001)
 		: dryTol(i_dryTol),
