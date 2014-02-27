@@ -101,18 +101,18 @@ public:
 		  // determine the wet dry state and corr. values, if necessary.
 		  if( i_hLeft >= dryTol ) {
 		     if ( i_hRight < dryTol ) {
-		      // Wet/Dry case
-		      // Set values according to wall boundary condition
-		      i_hLeft = i_hRight;
-		      i_huLeft = -i_huRight;
-		      i_bLeft = i_bRight;
-		     } 
-		  } else if ( i_hRight >= dryTol ) {
 		      // Dry/Wet case
 		      // Set values according to wall boundary condition
 		      i_hRight = i_hLeft;
 		      i_huRight = -i_huLeft;
 		      i_bRight = i_bLeft;
+		     } 
+		  } else if ( i_hRight >= dryTol ) {
+		      // Wet/Dry case
+		      // Set values according to wall boundary condition
+		      i_hLeft = i_hRight;
+		      i_huLeft = -i_huRight;
+		      i_bLeft = i_bRight;
 		  } else {
 		      // Dry/Dry case
 		      // Set dummy values such that the result is zero
