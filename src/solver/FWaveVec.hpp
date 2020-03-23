@@ -88,6 +88,9 @@ public:
 	 * and computes net updates (left and right going waves) according to the f-wave approach.
 	 * It also returns the maximum wave speed.
 	 */
+#ifdef VECTORIZE
+    #pragma omp declare simd
+#endif
 	void computeNetUpdates ( T i_hLeft,  T i_hRight,
                              T i_huLeft, T i_huRight,
                              T i_bLeft,  T i_bRight,
@@ -195,6 +198,9 @@ public:
 		                                                              // 54 FLOPs (3 sqrt, 4 div, 2 abs, 3 min/max)
     }
 
+#ifdef VECTORIZE
+    #pragma omp declare simd
+#endif
 	inline
 	void fWaveComputeWaveSpeeds(
             const T i_hLeft,  const T i_hRight,
@@ -230,6 +236,9 @@ public:
 		                                                                  //20 FLOPs (incl. 3 sqrt, 1 div, 2 min/max)
 	}
 
+#ifdef VECTORIZE
+    #pragma omp declare simd
+#endif
 	inline
 	void fWaveComputeWaveDecomposition(
 			const T i_hLeft,  const T i_hRight,
