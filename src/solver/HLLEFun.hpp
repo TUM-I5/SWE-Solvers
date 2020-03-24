@@ -146,8 +146,8 @@ void computeNetUpdates (
 	o_hUpdateLeft = o_hUpdateRight = o_huUpdateLeft = o_huUpdateRight = T(0);
 	o_maxWaveSpeed = (T)0;
 
-	// HLLE middle height
-	T hMiddle = (T)0;
+	// HLLE middle height (Unused?)
+	// T hMiddle = (T)0;
 
 /***************************************************************************************
  * Determine Wet Dry State Begin
