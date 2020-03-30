@@ -125,7 +125,7 @@ public:
 	 * @param gravity takes the value of the gravity constant (default value is 9.81 m/s^2)
 	 * @param zeroTol computed f-waves with an absolute value < zeroTol are treated as static waves (default value is 10^{-7})
 	 */
-	AugRieFun(real i_dryTol = (real) 100,
+    AugRieFun(real i_dryTol = (real) 1.0,
 			  real i_gravity = (real) 9.81,
 			  real i_zeroTol = (real) 0.0000001,
 			  real i_newtonTol = (real) 0.0000001,
