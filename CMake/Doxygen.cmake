@@ -7,17 +7,19 @@ find_package(Doxygen
 )
 
 if(Doxygen_FOUND)
-    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/Documentation/Doxyfile)
-    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Documentation/Doxyfile)
+    if (EXISTS ${CMAKE_SOURCE_DIR}/Documentation/Doxyfile)
+        set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/Documentation/Doxyfile)
+        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Documentation/Doxyfile)
 
-    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+        configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
 
-    if(NOT TARGET doxygen-docs)
-        add_custom_target(doxygen-docs
-            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Documentation
-            COMMENT "Generating Doxygen documentation."
-            VERBATIM
-        )
+        if(NOT TARGET doxygen-docs)
+            add_custom_target(doxygen-docs
+                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Documentation
+                COMMENT "Generating Doxygen documentation."
+                VERBATIM
+            )
+        endif()
     endif()
 endif()
