@@ -7,7 +7,7 @@ target_include_directories(${META_PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE
 
 target_include_directories(${META_PROJECT_NAME} 
     INTERFACE
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
 option(ENABLE_AUGMENTED_RIEMANN_EIGEN_COEFFICIENTS "Enable augmented Riemann eigen coefficients" OFF)
