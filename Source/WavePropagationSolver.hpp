@@ -77,7 +77,7 @@ namespace Solvers {
     WavePropagationSolver(T dryTolerance, T gravity, T zeroTolerance):
       dryTol_(dryTolerance),
       gravity_(gravity),
-      zeroTol_(zeroTolerance){};
+      zeroTol_(zeroTolerance) {}
 
     /**
      * Store parameters to member variables.
