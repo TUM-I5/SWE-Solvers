@@ -55,6 +55,7 @@ file(WRITE "${PROJECT_BINARY_DIR}/.gitignore" "*")
 
 add_subdirectory(CMake)
 include(Clang-Format)
+include(Doxygen)
 
 add_subdirectory(Source)
 
