@@ -18,40 +18,46 @@ if(CLANGFORMAT)
             ${CMAKE_SOURCE_DIR}/Tests/*.cpph
         )
 
-        add_custom_target(clang-format
-            COMMAND ${CLANGFORMAT}
-                -i
-                -style=file
-                -fallback-style=none
-                -verbose
-                ${ALL_CXX_SOURCE_FILES}
-            SOURCES "${CMAKE_SOURCE_DIR}/.clang-format"
-            COMMENT "Format all source files. This may take a while..."
-        )
+        if(NOT TARGET clang-format)
+            add_custom_target(clang-format
+                COMMAND ${CLANGFORMAT}
+                    -i
+                    -style=file
+                    -fallback-style=none
+                    -verbose
+                    ${ALL_CXX_SOURCE_FILES}
+                SOURCES "${CMAKE_SOURCE_DIR}/.clang-format"
+                COMMENT "Format all source files. This may take a while..."
+            )
+        endif()
 
-        add_custom_target(clang-format-check
-            # Use ! to negate the result for correct output
-            COMMAND !
-                ${CLANGFORMAT}
-                -style=file
-                -output-replacements-xml
-                -fallback-style=none
-                -verbose
-                ${ALL_CXX_SOURCE_FILES}
-                | grep -q "Replacement offset"
-            SOURCES "${CMAKE_SOURCE_DIR}/.clang-format"
-            COMMENT "Checking clang-format changes."
-        )
+        if(NOT TARGET clang-format-check)
+            add_custom_target(clang-format-check
+                # Use ! to negate the result for correct output
+                COMMAND !
+                    ${CLANGFORMAT}
+                    -style=file
+                    -output-replacements-xml
+                    -fallback-style=none
+                    -verbose
+                    ${ALL_CXX_SOURCE_FILES}
+                    | grep -q "Replacement offset"
+                SOURCES "${CMAKE_SOURCE_DIR}/.clang-format"
+                COMMENT "Checking clang-format changes."
+            )
+        endif()
 
-        add_custom_target(clang-format-dry
-            COMMAND ${CLANGFORMAT}
-                -style=file
-                -dry-run
-                -fallback-style=none
-                ${ALL_CXX_SOURCE_FILES}
-            SOURCES "${CMAKE_SOURCE_DIR}/.clang-format"
-            COMMENT "Running clang-format in dry mode."
-        )
+        if(NOT TARGET clang-format-dry)
+            add_custom_target(clang-format-dry
+                COMMAND ${CLANGFORMAT}
+                    -style=file
+                    -dry-run
+                    -fallback-style=none
+                    ${ALL_CXX_SOURCE_FILES}
+                SOURCES "${CMAKE_SOURCE_DIR}/.clang-format"
+                COMMENT "Running clang-format in dry mode."
+            )
+        endif()
     else()
         message(SEND_ERROR "clang-format found but cannot retrieve version information")
     endif()
