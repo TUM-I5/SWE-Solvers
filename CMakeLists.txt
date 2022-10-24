@@ -1,0 +1,60 @@
+cmake_minimum_required(VERSION 3.16)
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND git rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH_SHORT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+else()
+    set(GIT_BRANCH "")
+    set(GIT_COMMIT_HASH "")
+    set(GIT_COMMIT_HASH_SHORT "")
+endif()
+
+set(META_PROJECT_NAME        "SWE-Solvers")
+set(META_PROJECT_DESCRIPTION "Solvers for the Shallow Water Equations")
+set(META_AUTHOR_ORGANIZATION "Technische Universitaet Muenchen")
+set(META_AUTHOR_DOMAIN       "https://github.com/TUM-I5/SWE-Solvers")
+set(META_VERSION_REVISION    "${GIT_COMMIT_HASH_SHORT}")
+set(META_GIT_BRANCH          "${GIT_BRANCH}")
+set(META_GIT_HASH            "${GIT_COMMIT_HASH}")
+message(STATUS "On Git Branch: ${GIT_BRANCH} (${GIT_COMMIT_HASH})")
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_INLINES_HIDDEN YES)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(META_COMPILER_VERSION "${CMAKE_SYSTEM_NAME} ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER_VERSION})")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${META_PROJECT_NAME})
+
+project(${META_PROJECT_NAME}
+        DESCRIPTION ${META_PROJECT_DESCRIPTION}
+        HOMEPAGE_URL ${META_AUTHOR_DOMAIN}
+        LANGUAGES C CXX
+)
+file(WRITE "${PROJECT_BINARY_DIR}/.gitignore" "*")
+
+add_subdirectory(CMake)
+include(Clang-Format)
+
+add_subdirectory(Source)
+

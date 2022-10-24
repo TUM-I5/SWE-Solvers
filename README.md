@@ -1,4 +1,4 @@
-swe_solvers
+SWE-Solvers
 ===========
 
-Solvers for the shallow water equations.
+Solvers for the Shallow Water Equations.
