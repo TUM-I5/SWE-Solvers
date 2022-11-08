@@ -1,8 +1,8 @@
 /**
- * FWaveVec.h
+ * FWaveVecSolver.hpp
  *
  ****
- **** This is a vectorizable C++ implementation of the F-Wave solver (FWave.hpp).
+ **** This is a vectorizable C++ implementation of the F-Wave solver (FWaveSolver.hpp).
  ****
  *
  * Created on: Nov 13, 2012
@@ -42,23 +42,19 @@
  ****
  */
 
-#ifndef FWAVEVEC_HPP_
-#define FWAVEVEC_HPP_
+#pragma once
 
 #include <cmath>
 
-namespace solver {
+namespace Solvers {
 
-  /**
-   *
-   */
-  template <typename T>
-  class FWaveVec {
+  template <class T>
+  class FWaveVecSolver {
   private:
-    const T dryTol;
-    const T half_gravity; // 0.5 * gravity constant
-    const T sqrt_gravity; // square root of the gravity constant
-    const T zeroTol;
+    const T dryTol_;
+    const T zeroTol_;
+    const T halfGravity_;
+    const T sqrtGravity_;
 
   public:
     /**
@@ -69,227 +65,202 @@ namespace solver {
      * @param zeroTol computed f-waves with an absolute value < zeroTol are treated as static waves (default value is
      * 10^{-7})
      */
-    FWaveVec(T i_dryTol = (T)1.0, T i_gravity = (T)9.81, T i_zeroTol = (T)0.0000001):
-      dryTol(i_dryTol),
-      half_gravity((T).5 * i_gravity),
-      sqrt_gravity(std::sqrt(i_gravity)),
-      zeroTol(i_zeroTol) {}
+    FWaveVecSolver(T dryTol = T(1.0), T gravity = T(9.81), T zeroTol = T(0.0000001)):
+      :
+      dryTol_(dryTol),
+      zeroTol_(zeroTol),
+      halfGravity_(T(0.5) * gravity),
+      sqrtGravity_(std::sqrt(gravity)) {}
 
     /**
-     * takes the water height, discharge and bathymatry in the left and right cell
+     * Takes the water height, discharge and bathymatry in the left and right cell
      * and computes net updates (left and right going waves) according to the f-wave approach.
      * It also returns the maximum wave speed.
      */
-#ifdef VECTORIZE
+#ifdef ENABLE_VECTORIZATION
 #pragma omp declare simd
 #endif
     void computeNetUpdates(
-      T i_hLeft,
-      T i_hRight,
-      T i_huLeft,
-      T i_huRight,
-      T i_bLeft,
-      T i_bRight,
-
+      T  hLeft,
+      T  hRight,
+      T  huLeft,
+      T  huRight,
+      T  bLeft,
+      T  bRight,
       T& o_hUpdateLeft,
       T& o_hUpdateRight,
       T& o_huUpdateLeft,
       T& o_huUpdateRight,
       T& o_maxWaveSpeed
     ) const {
-      // determine the wet dry state and corr. values, if necessary.
-      if (i_hLeft >= dryTol) {
-        if (i_hRight < dryTol) {
+      if (hLeft >= dryTol_) {
+        if (hRight < dryTol_) {
           // Dry/Wet case
           // Set values according to wall boundary condition
-          i_hRight  = i_hLeft;
-          i_huRight = -i_huLeft;
-          i_bRight  = i_bLeft;
+          hRight  = hLeft;
+          huRight = -huLeft;
+          bRight  = bLeft;
         }
-      } else if (i_hRight >= dryTol) {
+      } else if (hRight >= dryTol_) {
         // Wet/Dry case
         // Set values according to wall boundary condition
-        i_hLeft  = i_hRight;
-        i_huLeft = -i_huRight;
-        i_bLeft  = i_bRight;
+        hLeft  = hRight;
+        huLeft = -huRight;
+        bLeft  = bRight;
       } else {
         // Dry/Dry case
         // Set dummy values such that the result is zero
-        i_hLeft   = dryTol;
-        i_huLeft  = 0.;
-        i_bLeft   = 0.;
-        i_hRight  = dryTol;
-        i_huRight = 0.;
-        i_bRight  = 0.;
-      };
+        hLeft   = dryTol_;
+        huLeft  = T(0.0);
+        bLeft   = T(0.0);
+        hRight  = dryTol_;
+        huRight = T(0.0);
+        bRight  = T(0.0);
+      }
 
-      //! velocity on the left side of the edge
-      T uLeft = i_huLeft / i_hLeft; // 1 FLOP (div)
-      //! velocity on the right side of the edge
-      T uRight = i_huRight / i_hRight; // 1 FLOP (div)
+      // Velocity on the left side of the edge
+      T uLeft = huLeft / hLeft; // 1 FLOP (div)
+      // Velocity on the right side of the edge
+      T uRight = huRight / hRight; // 1 FLOP (div)
 
-      //! wave speeds of the f-waves
-      T waveSpeeds0 = 0., waveSpeeds1 = 0.;
+      /// Wave speeds of the f-waves
+      T waveSpeeds0 = T(0.0);
+      T waveSpeeds1 = T(0.0);
 
-      // compute the wave speeds
       fWaveComputeWaveSpeeds(
-        i_hLeft,
-        i_hRight,
-        i_huLeft,
-        i_huRight,
-        uLeft,
-        uRight,
-        i_bLeft,
-        i_bRight,
-
-        waveSpeeds0,
-        waveSpeeds1
+        hLeft, hRight, huLeft, huRight, uLeft, uRight, bLeft, bRight, waveSpeeds0, waveSpeeds1
       ); // 20 FLOPs (incl. 3 sqrt, 1 div, 2 min/max)
 
-      //! variables to store the two f-waves
-      T fWaves0 = 0., fWaves1 = 0.;
+      // Variables to store the two f-waves
+      T fWaves0 = T(0.0);
+      T fWaves1 = T(0.0);
 
-      // compute the decomposition into f-waves
+      // Compute the decomposition into f-waves
       fWaveComputeWaveDecomposition(
-        i_hLeft,
-        i_hRight,
-        i_huLeft,
-        i_huRight,
-        uLeft,
-        uRight,
-        i_bLeft,
-        i_bRight,
-
-        waveSpeeds0,
-        waveSpeeds1,
-        fWaves0,
-        fWaves1
+        hLeft, hRight, huLeft, huRight, uLeft, uRight, bLeft, bRight, waveSpeeds0, waveSpeeds1, fWaves0, fWaves1
       ); // 23 FLOPs (incl. 1 div)
 
-      // compute the net-updates
-      o_hUpdateLeft   = 0.;
-      o_hUpdateRight  = 0.;
-      o_huUpdateLeft  = 0.;
-      o_huUpdateRight = 0.;
+      // Compute the net-updates
+      o_hUpdateLeft   = T(0.0);
+      o_hUpdateRight  = T(0.0);
+      o_huUpdateLeft  = T(0.0);
+      o_huUpdateRight = T(0.0);
 
       // 1st wave family
-      if (waveSpeeds0 < -zeroTol) { // left going
+      if (waveSpeeds0 < -zeroTol_) { // Left going
         o_hUpdateLeft += fWaves0;
         o_huUpdateLeft += fWaves0 * waveSpeeds0; // 3 FLOPs (assume left going wave ...)
-      } else if (waveSpeeds0 > zeroTol) {        // right going
+      } else if (waveSpeeds0 > zeroTol_) {       // Right going
         o_hUpdateRight += fWaves0;
         o_huUpdateRight += fWaves0 * waveSpeeds0;
-      } else { // split waves, if waveSpeeds0 close to 0
-        o_hUpdateLeft += (T).5 * fWaves0;
-        o_huUpdateLeft += (T).5 * fWaves0 * waveSpeeds0;
-        o_hUpdateRight += (T).5 * fWaves0;
-        o_huUpdateRight += (T).5 * fWaves0 * waveSpeeds0;
+      } else { // Split waves, if waveSpeeds0 close to 0
+        o_hUpdateLeft += T(0.5) * fWaves0;
+        o_huUpdateLeft += T(0.5) * fWaves0 * waveSpeeds0;
+        o_hUpdateRight += T(0.5) * fWaves0;
+        o_huUpdateRight += T(0.5) * fWaves0 * waveSpeeds0;
       }
 
       // 2nd wave family
-      if (waveSpeeds1 > zeroTol) { // right going
+      if (waveSpeeds1 > zeroTol_) { // Right going
         o_hUpdateRight += fWaves1;
         o_huUpdateRight += fWaves1 * waveSpeeds1; // 3 FLOPs (assume right going wave ...)
-      } else if (waveSpeeds1 < -zeroTol) {        // left going
+      } else if (waveSpeeds1 < -zeroTol_) {       // Left going
         o_hUpdateLeft += fWaves1;
         o_huUpdateLeft += fWaves1 * waveSpeeds1;
-      } else { // split waves
-        o_hUpdateLeft += (T).5 * fWaves1;
-        o_huUpdateLeft += (T).5 * fWaves1 * waveSpeeds1;
-        o_hUpdateRight += (T).5 * fWaves1;
-        o_huUpdateRight += (T).5 * fWaves1 * waveSpeeds1;
+      } else { // Split waves
+        o_hUpdateLeft += T(0.5) * fWaves1;
+        o_huUpdateLeft += T(0.5) * fWaves1 * waveSpeeds1;
+        o_hUpdateRight += T(0.5) * fWaves1;
+        o_huUpdateRight += T(0.5) * fWaves1 * waveSpeeds1;
       }
 
-      // compute maximum wave speed (-> CFL-condition)
-      o_maxWaveSpeed = std::max(std::abs(waveSpeeds0), std::abs(waveSpeeds1));
-      // 3 FLOPs (2 abs, 1 max)
-      //========================
+      // Compute maximum wave speed (-> CFL-condition)
+      o_maxWaveSpeed = std::max(std::abs(waveSpeeds0), std::abs(waveSpeeds1)); // 3 FLOPs (2 abs, 1 max)
+
+      // ========================
       // 54 FLOPs (3 sqrt, 4 div, 2 abs, 3 min/max)
     }
 
-#ifdef VECTORIZE
+#ifdef ENABLE_VECTORIZATION
 #pragma omp declare simd
 #endif
-    inline void fWaveComputeWaveSpeeds(
-      const T i_hLeft,
-      const T i_hRight,
-      const T i_huLeft,
-      const T i_huRight,
-      const T i_uLeft,
-      const T i_uRight,
-      const T i_bLeft,
-      const T i_bRight,
-
-      T& o_waveSpeed0,
-      T& o_waveSpeed1
+    void fWaveComputeWaveSpeeds(
+      const T hLeft,
+      const T hRight,
+      const T huLeft,
+      const T huRight,
+      const T uLeft,
+      const T uRight,
+      const T bLeft,
+      const T bRight,
+      T&      o_waveSpeed0,
+      T&      o_waveSpeed1
     ) const {
-      // helper variables for sqrt of h:
-      T sqrt_hLeft  = std::sqrt(i_hLeft);  // 1 FLOP (sqrt)
-      T sqrt_hRight = std::sqrt(i_hRight); // 1 FLOP (sqrt)
+      // Helper variables for sqrt of h:
+      T sqrtHLeft  = std::sqrt(hLeft);  // 1 FLOP (sqrt)
+      T sqrtHRight = std::sqrt(hRight); // 1 FLOP (sqrt)
 
-      // compute eigenvalues of the jacobian matrices
-      // in states Q_{i-1} and Q_{i}
-      T characteristicSpeed0 = i_uLeft - sqrt_gravity * sqrt_hLeft;   // 2 FLOPs
-      T characteristicSpeed1 = i_uRight + sqrt_gravity * sqrt_hRight; // 2 FLOPs
+      // Compute eigenvalues of the jacobian matrices in states Q_{i-1} and Q_{i}
+      T characteristicSpeed0 = uLeft - sqrtGravity_ * sqrtHLeft;   // 2 FLOPs
+      T characteristicSpeed1 = uRight + sqrtGravity_ * sqrtHRight; // 2 FLOPs
 
-      // compute "Roe averages"
-      T hRoe      = (T).5 * (i_hRight + i_hLeft);                  // 2 FLOPs
-      T sqrt_hRoe = std::sqrt(hRoe);                               // 1 FLOP (sqrt)
-      T uRoe      = i_uLeft * sqrt_hLeft + i_uRight * sqrt_hRight; // 3 FLOPs
-      uRoe /= sqrt_hLeft + sqrt_hRight;                            // 2 FLOPs (1 div)
+      // Compute "Roe averages"
+      T hRoe     = T(0.5) * (hRight + hLeft);              // 2 FLOPs
+      T sqrtHRoe = std::sqrt(hRoe);                        // 1 FLOP (sqrt)
+      T uRoe     = uLeft * sqrtHRoe + uRight * sqrtHRight; // 3 FLOPs
+      uRoe /= sqrtHLeft + sqrtHRight;                      // 2 FLOPs (1 div)
 
-      // compute "Roe speeds" from Roe averages
-      T roeSpeed0 = uRoe - sqrt_gravity * sqrt_hRoe; // 2 FLOPs
-      T roeSpeed1 = uRoe + sqrt_gravity * sqrt_hRoe; // 2 FLOPs
+      // Compute "Roe speeds" from Roe averages
+      T roeSpeed0 = uRoe - sqrtGravity_ * sqrtHRoe; // 2 FLOPs
+      T roeSpeed1 = uRoe + sqrtGravity_ * sqrtHRoe; // 2 FLOPs
 
-      // compute Eindfeldt speeds (returned as output parameters)
+      // Compute Eindfeldt speeds (returned as output parameters)
       o_waveSpeed0 = std::min(characteristicSpeed0, roeSpeed0); // 1 FLOP (min)
       o_waveSpeed1 = std::max(characteristicSpeed1, roeSpeed1); // 1 FLOP (max)
-                                                                //==============
-                                                                // 20 FLOPs (incl. 3 sqrt, 1 div, 2 min/max)
+
+      // ==============
+      // 20 FLOPs (incl. 3 sqrt, 1 div, 2 min/max)
     }
 
-#ifdef VECTORIZE
+#ifdef ENABLE_VECTORIZATION
 #pragma omp declare simd
 #endif
-    inline void fWaveComputeWaveDecomposition(
-      const T i_hLeft,
-      const T i_hRight,
-      const T i_huLeft,
-      const T i_huRight,
-      const T i_uLeft,
-      const T i_uRight,
-      const T i_bLeft,
-      const T i_bRight,
-      const T i_waveSpeed0,
-      const T i_waveSpeed1,
-
-      T& o_fWave0,
-      T& o_fWave1
+    void fWaveComputeWaveDecomposition(
+      const T hLeft,
+      const T hRight,
+      const T huLeft,
+      const T huRight,
+      const T uLeft,
+      const T uRight,
+      const T bLeft,
+      const T bRight,
+      const T waveSpeed0,
+      const T waveSpeed1,
+      T&      o_fWave0,
+      T&      o_fWave1
     ) const {
-      // calculate modified (bathymetry!) flux difference
-      //  f(Q_i) - f(Q_{i-1}) -> serve as right hand sides
-      T fDif0 = i_huRight - i_huLeft; // 1 FLOP
-      T fDif1 = i_huRight * i_uRight + half_gravity * i_hRight * i_hRight
-                - (i_huLeft * i_uLeft + half_gravity * i_hLeft * i_hLeft); // 9 FLOPs
+      // Calculate modified (bathymetry) flux difference
+      // f(Q_i) - f(Q_{i-1}) -> serve as right hand sides
+      T fDif0 = huRight - huLeft; // 1 FLOP
+      T fDif1 = huRight * uRight + halfGravity_ * hRight * hRight
+                - (huLeft * uLeft + halfGravity_ * hLeft * hLeft); // 9 FLOPs
 
       // \delta x \Psi[2]
-      fDif1 += half_gravity * (i_hRight + i_hLeft) * (i_bRight - i_bLeft); // 5 FLOPs
+      fDif1 += halfGravity_ * (hRight + hLeft) * (bRight - bLeft); // 5 FLOPs
 
-      // solve linear system of equations to obtain f-waves:
+      // Solve linear system of equations to obtain f-waves:
       // (       1            1      ) ( o_fWave0 ) = ( fDif0 )
-      // ( i_waveSpeed0 i_waveSpeed1 ) ( o_fWave1 )   ( fDif1 )
+      // ( waveSpeed0     waveSpeed1 ) ( o_fWave1 )   ( fDif1 )
 
-      // compute the inverse of the wave speed difference:
-      T inverseSpeedDiff = (T)1. / (i_waveSpeed1 - i_waveSpeed0); // 2 FLOPs (1 div)
-      // compute f-waves:
-      o_fWave0 = (i_waveSpeed1 * fDif0 - fDif1) * inverseSpeedDiff;  // 3 FLOPs
-      o_fWave1 = (-i_waveSpeed0 * fDif0 + fDif1) * inverseSpeedDiff; // 3 FLOPs
-                                                                     //=========
-                                                                     // 23 FLOPs in total (incl. 1 div)
+      // Compute the inverse of the wave speed difference:
+      T inverseSpeedDiff = T(1.0) / (waveSpeed1 - waveSpeed0); // 2 FLOPs (1 div)
+      // Compute f-waves:
+      o_fWave0 = (waveSpeed1 * fDif0 - fDif1) * inverseSpeedDiff;  // 3 FLOPs
+      o_fWave1 = (-waveSpeed0 * fDif0 + fDif1) * inverseSpeedDiff; // 3 FLOPs
+
+      // =========
+      // 23 FLOPs in total (incl. 1 div)
     }
   };
 
-} // namespace solver
-
-#endif // FWAVEVEC_HPP_
+} // namespace Solvers

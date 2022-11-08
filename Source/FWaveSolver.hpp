@@ -1,7 +1,19 @@
 /**
+ * FWaveSolver.hpp
  *
  ****
  **** F-Wave Riemann Solver for the Shallow Water Equation
+ ****
+ *
+ *  Created on: Aug 25, 2011
+ *  Last Update: Feb 18, 2012
+ *
+ ****
+ *
+ *  Author: Alexander Breuer
+ *    Homepage: http://www5.in.tum.de/wiki/index.php/Dipl.-Math._Alexander_Breuer
+ *    E-Mail: breuera AT in.tum.de
+ *
  ****
  *
  * (Main) Literature:
@@ -287,6 +299,8 @@ namespace Solvers {
       T zeroTolerance = static_cast<T>(0.000000001)
     ):
       WavePropagationSolver<T>(dryTolerance, gravity, zeroTolerance) {}
+
+    ~FWaveSolver() override = default;
 
     /**
      * Compute net updates for the cell on the left/right side of the edge.
