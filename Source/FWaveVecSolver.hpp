@@ -66,7 +66,6 @@ namespace Solvers {
      * 10^{-7})
      */
     FWaveVecSolver(T dryTol = T(1.0), T gravity = T(9.81), T zeroTol = T(0.0000001)):
-      :
       dryTol_(dryTol),
       zeroTol_(zeroTol),
       halfGravity_(T(0.5) * gravity),
