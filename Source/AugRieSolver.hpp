@@ -110,6 +110,15 @@ namespace Solvers {
 
     using WavePropagationSolver<T>::wetDryState_;
 
+    using WavePropagation<T>::WetDryState::DryDry;
+    using WavePropagation<T>::WetDryState::WetWet;
+    using WavePropagation<T>::WetDryState::WetDryInundation;
+    using WavePropagation<T>::WetDryState::WetDryWall;
+    using WavePropagation<T>::WetDryState::WetDryWallInundation;
+    using WavePropagation<T>::WetDryState::DryWetInundation;
+    using WavePropagation<T>::WetDryState::DryWetWall;
+    using WavePropagation<T>::WetDryState::DryWetWallInundation;
+
     //! Newton-tolerance (exit Newton-Raphson-method, if we are close enough to the root)
     const T newtonTol_;
     //! Maximum number of Newton-Raphson-Iterations
@@ -372,8 +381,8 @@ namespace Solvers {
           hRight_  = hLeft_;
           uRight_  = -uLeft_;
           huRight_ = -huLeft_;
-          bRight_ = bLeft = T(0.0);
-          wetDryState_    = WavePropagationSolver<T>::WetDryState::WetDryWall;
+          bRight_ = bLeft_ = T(0.0);
+          wetDryState_     = WavePropagationSolver<T>::WetDryState::WetDryWall;
         }
       }
       // Done with all cases
@@ -444,7 +453,7 @@ namespace Solvers {
         extEinfeldtSpeeds[1] = std::max(characteristicSpeeds[1], roeSpeeds[1]);
 
         assert(middleStateSpeeds[0] < extEinfeldtSpeeds[1]);
-      } else if (hRight < dryTol) { // Ignore undefined speeds
+      } else if (hRight_ < dryTol_) { // Ignore undefined speeds
         extEinfeldtSpeeds[0] = std::min(characteristicSpeeds[0], roeSpeeds[0]);
         extEinfeldtSpeeds[1] = std::max(roeSpeeds[1], middleStateSpeeds_[0]);
 
@@ -498,7 +507,7 @@ namespace Solvers {
         // Determine the max. rarefaction size (distance between head and tail)
         T rareFactionSize[2]{};
         rareFactionSize[0] = T(3.0) * (sqrtGhLeft_ - sqrtGhMiddle);
-        rareFactionSize[1] = T(3.0 * (sqrtGhRight_ - sqrtGhMiddle);
+        rareFactionSize[1] = T(3.0) * (sqrtGhRight_ - sqrtGhMiddle);
 
         T maxRareFactionSize = std::max(rareFactionSize[0], rareFactionSize[1]);
 
@@ -506,9 +515,9 @@ namespace Solvers {
         if (maxRareFactionSize > rareBarrier[0] * (eigenValues[2] - eigenValues[0]) && maxRareFactionSize < rareBarrier[1] * (eigenValues[2] - eigenValues[0])) {
           strongRarefaction = true;
           if (rareFactionSize[0] > rareFactionSize[1]) {
-            eigenValues[1] = middleStateSpeeds[0];
+            eigenValues[1] = middleStateSpeeds_[0];
           } else {
-            eigenValues[1] = middleStateSpeeds[1];
+            eigenValues[1] = middleStateSpeeds_[1];
           }
         }
 
@@ -543,24 +552,24 @@ namespace Solvers {
       T steadyStateWave[2]{};
       T hBar = (hLeft + hRight) * T(0.5);
 #ifdef COMPLEX_STEADY_STATE_WAVE
-      T lLambdaBar = (uLeft + uRight) * (uLeft + uRight) * T(0.25) - g * hBar;
+      T lLambdaBar = (uLeft_ + uRight_) * (uLeft_ + uRight_) * T(0.25) - gravity_ * hBar;
 
-      T lLambdaTilde = std::max(T(0.0), uLeft * uRight) - g * hBar;
+      T lLambdaTilde = std::max(T(0.0), uLeft_ * uRight_) - gravity_ * hBar;
 
       // Near sonic as defined in geoclaw (TODO: literature?)
-      if ((std::fabs(lLambdaBar) < zeroTol) || (lLambdaBar * lLambdaTilde < zeroTol) || (lLambdaBar * eigenValues[0] * eigenValues[1] < zeroTol) || (std::min(std::fabs(eigenValues[0]), std::fabs(eigenValues[2])) < zeroTol_) || (eigenValues[0] < T(0.0) && middleStateSpeeds[0] > T(0.0)) || (eigenValues[2] > T(0.0) && middleStateSpeeds_[1] < T(0.0)) || ((uLeft + sqrt(g * hLeft)) * (uRight + sqrt(g * hRight)) < T(0.0)) || ((uLeft - sqrt(g * hLeft)) * (uRight - sqrt(g * hRight)) < T(0.0))) {
+      if ((std::fabs(lLambdaBar) < zeroTol_) || (lLambdaBar * lLambdaTilde < zeroTol_) || (lLambdaBar * eigenValues[0] * eigenValues[1] < zeroTol_) || (std::min(std::fabs(eigenValues[0]), std::fabs(eigenValues[2])) < zeroTol_) || (eigenValues[0] < T(0.0) && middleStateSpeeds_[0] > T(0.0)) || (eigenValues[2] > T(0.0) && middleStateSpeeds_[1] < T(0.0)) || ((uLeft + sqrt(gravity_ * hLeft_)) * (uRight_ + sqrt(gravity_ * hRight_)) < T(0.0)) || ((uLeft_ - sqrt(gravity_ * hLeft_)) * (uRight_ - sqrt(gravity_ * hRight_)) < T(0.0))) {
 #endif
-        steadyStateWave[0] = -(bRight - bLeft);
-        steadyStateWave[1] = -g * hBar * (bRight - bLeft);
+        steadyStateWave[0] = -(bRight_ - bLeft_);
+        steadyStateWave[1] = -gravity_ * hBar * (bRight_ - bLeft_);
 #ifdef COMPLEX_STEADY_STATE_WAVE
       } else {
-        steadyStateWave[0] = g * (hBar / lLambdaBar) * (bRight - bLeft);
+        steadyStateWave[0] = gravity_ * (hBar / lLambdaBar) * (bRight_ - bLeft_);
         T hTilde           = hBar * lLambdaTilde / lLambdaBar;
 
         // Set bounds for problems far from steady state
-        hTilde             = std::max(std::min(hLeft, hRight), hTilde);
-        hTilde             = std::min(std::max(hLeft, hRight), hTilde);
-        steadyStateWave[1] = -g * hTilde * (bRight - bLeft);
+        hTilde             = std::max(std::min(hLeft_, hRight_), hTilde);
+        hTilde             = std::min(std::max(hLeft_, hRight_), hTilde);
+        steadyStateWave[1] = -gravity_ * hTilde * (bRight_ - bLeft_);
       }
 #endif
 
@@ -578,7 +587,7 @@ namespace Solvers {
         steadyStateWave[0] = std::min(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[0]
         );
-      } else if (eigenValues[2] < -zeroTol) { // Supersonic left TODO: motivation?
+      } else if (eigenValues[2] < -zeroTol_) { // Supersonic left TODO: motivation?
         steadyStateWave[0] = std::max(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[2]
         );
@@ -595,7 +604,7 @@ namespace Solvers {
       );
 
       // No source term in the case of a wall
-      if (wetDryState == WavePropagationSolver<T>::WetDryState::WetDryWall || wetDryState == WavePropagationSolver<T>::WetDryState::DryWetWall) {
+      if (wetDryState_ == WavePropagationSolver<T>::WetDryState::WetDryWall || wetDryState_ == WavePropagationSolver<T>::WetDryState::DryWetWall) {
         assert(std::fabs(steadyStateWave[0]) < zeroTol_);
         assert(std::fabs(steadyStateWave[1]) < zeroTol_);
       }
@@ -697,7 +706,7 @@ namespace Solvers {
       }
 
       // Determine the wave structure of the Riemann-problem
-      riemannStructure = determineRiemannStructure(hLeft, hRight, uLeft, uRight);
+      riemannStructure_ = determineRiemannStructure(hLeft, hRight, uLeft, uRight);
 
       // Will be computed later
       T sqrtGhMiddle = T(0.0);
@@ -867,12 +876,12 @@ namespace Solvers {
 
           T phi = uRight - uLeft + (hMiddle_ - hMin) * sqrtTermHMin + T(2) * (sqrtGhMiddle - sqrtGhMax);
 
-          if (std::fabs(phi) < newtonTol) {
+          if (std::fabs(phi) < newtonTol_) {
             break;
           }
 
           T derivativePhi = sqrtTermHMin - T(0.25) * gravity_ * (hMiddle_ - hMin) / (hMiddle_ * hMiddle_ * sqrtTermHMin)
-                            + sqrtG / sqrtGhMiddle;
+                            + sqrtG_ / sqrtGhMiddle;
 
           hMiddle_ = hMiddle_ - phi / derivativePhi; // Newton step
 
@@ -907,8 +916,8 @@ namespace Solvers {
         // }
       }
 
-      middleStateSpeeds[0] = uLeft + T(2.0) * lsqrtGhLeft - T(3.0) * sqrtGhMiddle;
-      middleStateSpeeds[1] = uRight - T(2.0) * lsqrtGhRight + T(3.0) * sqrtGhMiddle;
+      middleStateSpeeds_[0] = uLeft + T(2.0) * lsqrtGhLeft - T(3.0) * sqrtGhMiddle;
+      middleStateSpeeds_[1] = uRight - T(2.0) * lsqrtGhRight + T(3.0) * sqrtGhMiddle;
 
       assert(hMiddle_ >= 0);
     }
@@ -985,33 +994,33 @@ namespace Solvers {
       // m stores not really the inverse matrix, but the inverse multiplied by d
       T s = T(1) / d;
 
-      // Ccompute m*b
+      // Compute m*b
       o_x[0] = (m[0][0] * b[0] + m[0][1] * b[1] + m[0][2] * b[2]) * s;
       o_x[1] = (m[1][0] * b[0] + m[1][1] * b[1] + m[1][2] * b[2]) * s;
       o_x[2] = (m[2][0] * b[0] + m[2][1] * b[1] + m[2][2] * b[2]) * s;
 
 #else
-      T origDet = computeDeterminant(i_matrix);
+      T origDet = computeDeterminant(matrix);
 
-      if (std::fabs(origDet) > zeroTol) {
+      if (std::fabs(origDet) > zeroTol_) {
         T modifiedMatrix[3][3]{};
 
         for (int column = 0; column < 3; column++) {
-          memcpy(modifiedMatrix, i_matrix, sizeof(T) * 3 * 3);
+          memcpy(modifiedMatrix, matrix, sizeof(T) * 3 * 3);
 
-          // set a column of the matrix to b
-          modifiedMatrix[0][column] = i_b[0];
-          modifiedMatrix[1][column] = i_b[1];
-          modifiedMatrix[2][column] = i_b[2];
+          // Set a column of the matrix to b
+          modifiedMatrix[0][column] = b[0];
+          modifiedMatrix[1][column] = b[1];
+          modifiedMatrix[2][column] = b[2];
 
           o_x[column] = computeDeterminant(modifiedMatrix) / origDet;
         }
       } else {
         std::cerr << "Warning: Linear dependent eigenvectors! (using Jacobi Solver)" << std::endl;
         std::cerr << "Determinant: " << origDet << std::endl;
-        std::cerr << i_matrix[0][0] << "\t" << i_matrix[0][1] << "\t" << i_matrix[0][2] << std::endl;
-        std::cerr << i_matrix[1][0] << "\t" << i_matrix[1][1] << "\t" << i_matrix[1][2] << std::endl;
-        std::cerr << i_matrix[2][0] << "\t" << i_matrix[2][1] << "\t" << i_matrix[2][2] << std::endl;
+        std::cerr << matrix[0][0] << "\t" << matrix[0][1] << "\t" << matrix[0][2] << std::endl;
+        std::cerr << matrix[1][0] << "\t" << matrix[1][1] << "\t" << matrix[1][2] << std::endl;
+        std::cerr << matrix[2][0] << "\t" << matrix[2][1] << "\t" << matrix[2][2] << std::endl;
 #if 1
         T xTemp[3]{};
         xTemp[0] = xTemp[1] = xTemp[2] = T(0.0);
@@ -1054,7 +1063,7 @@ namespace Solvers {
 #endif
     }
 
-#if 0
+#if 1
     /**
      * Compute the determinant of a 3x3 matrix
      * using formula: |A|=a11 * (a22a33-a32a23) + a12 * (a23a31-a33a21) + a13 * (a21a32-a31a22)
