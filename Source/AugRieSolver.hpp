@@ -110,15 +110,14 @@ namespace Solvers {
 
     using WavePropagationSolver<T>::wetDryState_;
 
-    using WavePropagationSolver<T>::WetDryState;
-    using WavePropagationSolver<T>::WetDryState::DryDry;
-    using WavePropagationSolver<T>::WetDryState::WetWet;
-    using WavePropagationSolver<T>::WetDryState::WetDryInundation;
-    using WavePropagationSolver<T>::WetDryState::WetDryWall;
-    using WavePropagationSolver<T>::WetDryState::WetDryWallInundation;
-    using WavePropagationSolver<T>::WetDryState::DryWetInundation;
-    using WavePropagationSolver<T>::WetDryState::DryWetWall;
-    using WavePropagationSolver<T>::WetDryState::DryWetWallInundation;
+    using WavePropagationSolver<T>::DryDry;
+    using WavePropagationSolver<T>::WetWet;
+    using WavePropagationSolver<T>::WetDryInundation;
+    using WavePropagationSolver<T>::WetDryWall;
+    using WavePropagationSolver<T>::WetDryWallInundation;
+    using WavePropagationSolver<T>::DryWetInundation;
+    using WavePropagationSolver<T>::DryWetWall;
+    using WavePropagationSolver<T>::DryWetWallInundation;
 
     //! Newton-tolerance (exit Newton-Raphson-method, if we are close enough to the root)
     const T newtonTol_;
@@ -416,7 +415,7 @@ namespace Solvers {
       ,
       T o_eigenCoefficients[3]
 #endif
-    ) const {
+    ) {
       // Compute eigenvalues of the jacobian matrices in states Q_{i-1} and Q_{i} (char. speeds)
       T characteristicSpeeds[2]{};
       characteristicSpeeds[0] = uLeft_ - sqrtGhLeft_;
