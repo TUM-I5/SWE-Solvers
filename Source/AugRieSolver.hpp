@@ -290,7 +290,7 @@ namespace Solvers {
       o_maxWaveSpeed = std::max(o_maxWaveSpeed, waveSpeeds[2]);
     }
 
-  protected:
+  private:
     /**
      * Determine the wet/dry state and set member variables accordingly.
      */
@@ -999,7 +999,7 @@ namespace Solvers {
         for (int column = 0; column < 3; column++) {
           memcpy(modifiedMatrix, i_matrix, sizeof(T) * 3 * 3);
 
-          // set a column of the matrix to i_b
+          // set a column of the matrix to b
           modifiedMatrix[0][column] = i_b[0];
           modifiedMatrix[1][column] = i_b[1];
           modifiedMatrix[2][column] = i_b[2];
