@@ -110,6 +110,7 @@ namespace Solvers {
 
     using WavePropagationSolver<T>::wetDryState_;
 
+    using WavePropagationSolver<T>::WetDryState;
     using WavePropagationSolver<T>::WetDryState::DryDry;
     using WavePropagationSolver<T>::WetDryState::WetWet;
     using WavePropagationSolver<T>::WetDryState::WetDryInundation;

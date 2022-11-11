@@ -47,7 +47,7 @@ namespace Solvers {
     /**
      * The wet/dry state of the Riemann-problem.
      */
-    enum class WetDryState {
+    enum WetDryState {
       DryDry,           /**< Both cells are dry. */
       WetWet,           /**< Both cells are wet. */
       WetDryInundation, /**< 1st cell: wet, 2nd cell: dry. 1st cell lies higher than the 2nd one. */
