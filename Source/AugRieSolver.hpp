@@ -138,21 +138,21 @@ namespace Solvers {
 
     // Declare variables which are used over and over again
 #if 0
-    T sqrtGh[2];
-    T sqrth[2];
-#define sqrtGhLeft (sqrtGh[0])
-#define sqrtGhRight (sqrtGh[1])
+    T sqrtGh_[2];
+    T sqrth_[2];
+#define sqrtGhLeft_ (sqrtGh_[0])
+#define sqrtGhRight_ (sqrtGh_[1])
 
-#define sqrthLeft (sqrth[0])
-#define sqrthRight (sqrth[1])
+#define sqrthLeft_ (sqrth_[0])
+#define sqrthRight_ (sqrth_[1])
 #else
-    T sqrtGhLeft;
-    T sqrtGhRight;
+    T sqrtGhLeft_;
+    T sqrtGhRight_;
 
-    T sqrthLeft;
-    T sqrthRight;
+    T sqrthLeft_;
+    T sqrthRight_;
 #endif
-    T sqrtG;
+    T sqrtG_;
 
   public:
     /**
@@ -171,7 +171,7 @@ namespace Solvers {
       int maxNumberOfNewtonIterations = 10,
       T   zeroTolerance               = T(0.00001)
     ):
-      WavePropagation<T>(dryTolerance, gravity, zeroTolerance),
+      WavePropagationSolver<T>(dryTolerance, gravity, zeroTolerance),
       newtonTol_(newtonTolerance),
       maxNumberOfNewtonIterations_(maxNumberOfNewtonIterations) {}
 
@@ -204,7 +204,7 @@ namespace Solvers {
       WavePropagationSolver<T>::storeParameters(hLeft, hRight, huLeft, huRight, bLeft, bRight);
 
       // Set speeds to zero (will be determined later)
-      uLeft = uRight = 0.;
+      uLeft_ = uRight_ = T(0.0);
 
       // Reset net updates and the maximum wave speed
       o_hUpdateLeft = o_hUpdateRight = o_huUpdateLeft = o_huUpdateRight = T(0.0);
@@ -218,18 +218,18 @@ namespace Solvers {
       // Determine the wet/dry state and compute local variables correspondingly
       determineWetDryState();
 
-      if (wetDryState == WavePropagationSolver<T>::WetDryState::DryDry) {
+      if (wetDryState_ == WavePropagationSolver<T>::WetDryState::DryDry) {
         return; // Nothing to do in a dry region
       }
 
       // Precompute some terms which are fixed during
       // the computation after some specific point
-      sqrtG      = std::sqrt(gravity_);
-      sqrthLeft  = std::sqrt(hLeft);
-      sqrthRight = std::sqrt(hRight);
+      sqrtG_      = std::sqrt(gravity_);
+      sqrthLeft_  = std::sqrt(hLeft);
+      sqrthRight_ = std::sqrt(hRight);
 
-      sqrtGhLeft  = sqrtG * sqrthLeft;
-      sqrtGhRight = sqrtG * sqrthRight;
+      sqrtGhLeft_  = sqrtG_ * sqrthLeft_;
+      sqrtGhRight_ = sqrtG_ * sqrthRight_;
 
       // Where to store the three waves
       T fWaves[3][2];
@@ -300,7 +300,7 @@ namespace Solvers {
         uLeft_ = huLeft_ / hLeft_;
       } else {
         bLeft_ += hLeft_;
-        hLeft = huLeft_ = uLeft_ = 0;
+        hLeft_ = huLeft_ = uLeft_ = 0;
       }
 
       if (hRight_ > dryTol_) {
@@ -329,8 +329,8 @@ namespace Solvers {
         wetDryState_ = WavePropagationSolver<T>::WetDryState::DryWetInundation;
       }
 
-      else if (hRight_ < dryTol && hLeft + bLeft > bRight_) {
-        wetDryState = WetDryInundation;
+      else if (hRight_ < dryTol_ && hLeft_ + bLeft_ > bRight_) {
+        wetDryState_ = WavePropagationSolver<T>::WetDryState::WetDryInundation;
       }
 
       // Dry cell lies higher than the wet cell
@@ -414,8 +414,8 @@ namespace Solvers {
 
       // Compute "Roe speeds"
       T hRoe = T(0.5) * (hRight_ + hLeft_);
-      T uRoe = uLeft_ * sqrtHLeft_ + uRight_ * sqrtHRight_;
-      uRoe /= sqrtHLeft_ + sqrtHRight_;
+      T uRoe = uLeft_ * sqrthLeft_ + uRight_ * sqrthRight_;
+      uRoe /= sqrthLeft_ + sqrthRight_;
 
       T roeSpeeds[2]{};
       // Optimization for dumb compilers
@@ -482,23 +482,23 @@ namespace Solvers {
       //   \cite[ch. 6.7.2]{george2006finite}, \cite[ch. 5.1]{george2008augmented}
       bool strongRarefaction = false;
 #ifdef CORRECT_RARE_FACTIONS
-      if ((riemannStructure == ShockRarefaction || riemannStructure == RarefactionShock || riemannStructure == RarefactionRarefaction) && hMiddle > dryTol) { // Limit to ensure non-negative depth
+      if ((riemannStructure_ == ShockRarefaction || riemannStructure_ == RarefactionShock || riemannStructure_ == RarefactionRarefaction) && hMiddle_ > dryTol_) { // Limit to ensure non-negative depth
 
         // TODO: GeoClaw, riemann_aug_JCP; No explicit boundaries for "strong rarefaction" in literature?
         T rareBarrier[2] = {0.5, 0.9};
 
         // Lower rare barrier in the case of a transsonic rarefaction
-        if ((riemannStructure == RarefactionShock || riemannStructure == RarefactionRarefaction) && eigenValues[0] * middleStateSpeeds[0] < T(0.0)) { // Transsonic rarefaction, first wave family
+        if ((riemannStructure_ == RarefactionShock || riemannStructure_ == RarefactionRarefaction) && eigenValues[0] * middleStateSpeeds_[0] < T(0.0)) { // Transsonic rarefaction, first wave family
           rareBarrier[0] = T(0.2);
-        } else if ((riemannStructure == ShockRarefaction || riemannStructure == RarefactionRarefaction) && eigenValues[2] * middleStateSpeeds[1] < T(0.0)) { // Transsonic rarefaction, second wave family
+        } else if ((riemannStructure_ == ShockRarefaction || riemannStructure_ == RarefactionRarefaction) && eigenValues[2] * middleStateSpeeds_[1] < T(0.0)) { // Transsonic rarefaction, second wave family
           rareBarrier[0] = T(0.2);
         }
 
-        T sqrtGhMiddle = std::sqrt(g * hMiddle);
+        T sqrtGhMiddle = std::sqrt(gravity_ * hMiddle_);
         // Determine the max. rarefaction size (distance between head and tail)
         T rareFactionSize[2]{};
-        rareFactionSize[0] = T(3.0) * (sqrtGhLeft - sqrtGhMiddle);
-        rareFactionSize[1] = T(3.0 * (sqrtGhRight - sqrtGhMiddle);
+        rareFactionSize[0] = T(3.0) * (sqrtGhLeft_ - sqrtGhMiddle);
+        rareFactionSize[1] = T(3.0 * (sqrtGhRight_ - sqrtGhMiddle);
 
         T maxRareFactionSize = std::max(rareFactionSize[0], rareFactionSize[1]);
 
@@ -533,9 +533,10 @@ namespace Solvers {
 
       // Compute the jump in state
       T rightHandSide[3]{};
-      rightHandSide[0] = hRight - hLeft;
-      rightHandSide[1] = huRight - huLeft;
-      rightHandSide[2] = huRight * uRight + T(0.5) * g * hRight * hRight - (huLeft * uLeft + T(0.5) * g * hLeft * hLeft);
+      rightHandSide[0] = hRight_ - hLeft_;
+      rightHandSide[1] = huRight_ - huLeft_;
+      rightHandSide[2] = huRight_ * uRight_ + T(0.5) * gravity_ * hRight_ * hRight_
+                         - (huLeft_ * uLeft_ + T(0.5) * gravity_ * hLeft_ * hLeft_);
 
       // Compute steady state wave
       //   \cite[ch. 4.2.1 \& app. A]{george2008augmented}, \cite[ch. 6.2 \& ch. 4.4]{george2006finite}
@@ -547,7 +548,7 @@ namespace Solvers {
       T lLambdaTilde = std::max(T(0.0), uLeft * uRight) - g * hBar;
 
       // Near sonic as defined in geoclaw (TODO: literature?)
-      if ((std::fabs(lLambdaBar) < zeroTol) || (lLambdaBar * lLambdaTilde < zeroTol) || (lLambdaBar * eigenValues[0] * eigenValues[1] < zeroTol) || (std::min(std::fabs(eigenValues[0]), std::fabs(eigenValues[2])) < zeroTol) || (eigenValues[0] < T(0.0) && middleStateSpeeds[0] > T(0.0)) || (eigenValues[2] > T(0.0) && middleStateSpeeds[1] < T(0.0)) || ((uLeft + sqrt(g * hLeft)) * (uRight + sqrt(g * hRight)) < T(0.0)) || ((uLeft - sqrt(g * hLeft)) * (uRight - sqrt(g * hRight)) < T(0.0))) {
+      if ((std::fabs(lLambdaBar) < zeroTol) || (lLambdaBar * lLambdaTilde < zeroTol) || (lLambdaBar * eigenValues[0] * eigenValues[1] < zeroTol) || (std::min(std::fabs(eigenValues[0]), std::fabs(eigenValues[2])) < zeroTol_) || (eigenValues[0] < T(0.0) && middleStateSpeeds[0] > T(0.0)) || (eigenValues[2] > T(0.0) && middleStateSpeeds_[1] < T(0.0)) || ((uLeft + sqrt(g * hLeft)) * (uRight + sqrt(g * hRight)) < T(0.0)) || ((uLeft - sqrt(g * hLeft)) * (uRight - sqrt(g * hRight)) < T(0.0))) {
 #endif
         steadyStateWave[0] = -(bRight - bLeft);
         steadyStateWave[1] = -g * hBar * (bRight - bLeft);
@@ -587,16 +588,16 @@ namespace Solvers {
       // Limit the effect of the source term
       //   \cite[ch. 6.4.2]{george2006finite}
       steadyStateWave[1] = std::min(
-        steadyStateWave[1], g * std::max(-hLeft * (bRight - bLeft), -hRight * (bRight - bLeft))
+        steadyStateWave[1], gravity_ * std::max(-hLeft * (bRight - bLeft), -hRight * (bRight - bLeft))
       );
       steadyStateWave[1] = std::max(
-        steadyStateWave[1], g * std::min(-hLeft * (bRight - bLeft), -hRight * (bRight - bLeft))
+        steadyStateWave[1], gravity_ * std::min(-hLeft * (bRight - bLeft), -hRight * (bRight - bLeft))
       );
 
       // No source term in the case of a wall
       if (wetDryState == WavePropagationSolver<T>::WetDryState::WetDryWall || wetDryState == WavePropagationSolver<T>::WetDryState::DryWetWall) {
-        assert(std::fabs(steadyStateWave[0]) < zeroTol);
-        assert(std::fabs(steadyStateWave[1]) < zeroTol);
+        assert(std::fabs(steadyStateWave[0]) < zeroTol_);
+        assert(std::fabs(steadyStateWave[1]) < zeroTol_);
       }
 
       rightHandSide[0] -= steadyStateWave[0];
@@ -608,7 +609,7 @@ namespace Solvers {
       solveLinearEquation(eigenVectors, rightHandSide, beta);
 
       // Compute f-waves and wave-speeds
-      if (wetDryState == WavePropagationSolver<T>::WetDryState::WetDryWall) { // Zero ghost updates (wall boundary)
+      if (wetDryState_ == WavePropagationSolver<T>::WetDryState::WetDryWall) { // Zero ghost updates (wall boundary)
         // Care about the left going wave (0) only
         o_fWaves[0][0] = beta[0] * eigenVectors[1][0];
         o_fWaves[0][1] = beta[0] * eigenVectors[2][0];
@@ -620,21 +621,21 @@ namespace Solvers {
         o_waveSpeeds[0] = eigenValues[0];
         o_waveSpeeds[1] = o_waveSpeeds[2] = T(0.0);
 
-        assert(eigenValues[0] < zeroTol);
-      } else if (wetDryState == WavePropagationSolver<T>::WetDryState::DryWetWall) { // Zero ghost updates (wall
-                                                                                     // boundary)
+        assert(eigenValues[0] < zeroTol_);
+      } else if (wetDryState_ == WavePropagationSolver<T>::WetDryState::DryWetWall) { // Zero ghost updates (wall
+                                                                                      // boundary)
         // Care about the right going wave (2) only
         o_fWaves[2][0] = beta[2] * eigenVectors[1][2];
         o_fWaves[2][1] = beta[2] * eigenVectors[2][2];
 
         // Set the rest to zero
-        o_fWaves[0][0] = o_fWaves[0][1] = T(0.0;
+        o_fWaves[0][0] = o_fWaves[0][1] = T(0.0);
         o_fWaves[1][0] = o_fWaves[1][1] = T(0.0);
 
         o_waveSpeeds[2] = eigenValues[2];
         o_waveSpeeds[0] = o_waveSpeeds[1] = 0.;
 
-        assert(eigenValues[2] > -zeroTol);
+        assert(eigenValues[2] > -zeroTol_);
       } else {
         // Compute f-waves (default)
         for (int waveNumber = 0; waveNumber < 3; waveNumber++) {
@@ -675,9 +676,9 @@ namespace Solvers {
       const int& maxNumberOfNewtonIterations = 1
     ) {
       // Set everything to zero
-      hMiddle              = T(0.0);
-      middleStateSpeeds[0] = T(0.0);
-      middleStateSpeeds[1] = T(0.0);
+      hMiddle_              = T(0.0);
+      middleStateSpeeds_[0] = T(0.0);
+      middleStateSpeeds_[1] = T(0.0);
 
       // Compute local square roots
       // (not necessarily the same ones as in computeNetUpdates!)
@@ -686,12 +687,12 @@ namespace Solvers {
 
       // Single rarefaction in the case of a wet/dry interface
       if (hLeft < dryTol_) {
-        middleStateSpeeds[1] = middleStateSpeeds[0] = uRight - T(2) * lsqrtGhRight;
-        riemannStructure                            = DrySingleRarefaction;
+        middleStateSpeeds_[1] = middleStateSpeeds_[0] = uRight - T(2) * lsqrtGhRight;
+        riemannStructure_                             = DrySingleRarefaction;
         return;
       } else if (hRight < dryTol_) {
-        middleStateSpeeds[0] = middleStateSpeeds[1] = uLeft + T(2) * lsqrtGhLeft;
-        riemannStructure                            = SingleRarefactionDry;
+        middleStateSpeeds_[0] = middleStateSpeeds_[1] = uLeft + T(2) * lsqrtGhLeft;
+        riemannStructure_                             = SingleRarefactionDry;
         return;
       }
 
@@ -741,39 +742,39 @@ namespace Solvers {
          *\end{equation}
          */
 
-        // hMiddle = (hLeft + hRight) * T(0.618); // First estimate
-        hMiddle = std::min(hLeft, hRight);
+        // hMiddle_ = (hLeft + hRight) * T(0.618); // First estimate
+        hMiddle_ = std::min(hLeft, hRight);
 
         T lsqrtTermH[2] = {0, 0};
 
         for (int i = 0; i < maxNumberOfNewtonIterations; i++) {
-          // sqrtTermHLow = std::sqrt(T(0.5) * gravity_ * (T(1/hMiddle) + (T(1/hLeft)));
-          lsqrtTermH[0] = std::sqrt(T(0.5) * gravity_ * ((hMiddle + hLeft) / (hMiddle * hLeft)));
-          // sqrtTermHHigh = std::sqrt(T(0.5) * gravity_ * (T(1/hMiddle) + T(1/hRight)));
-          lsqrtTermH[1] = std::sqrt(T(0.5) * gravity_ * ((hMiddle + hRight) / (hMiddle * hRight)));
+          // sqrtTermHLow = std::sqrt(T(0.5) * gravity_ * (T(1/hMiddle_) + (T(1/hLeft)));
+          lsqrtTermH[0] = std::sqrt(T(0.5) * gravity_ * ((hMiddle_ + hLeft) / (hMiddle_ * hLeft)));
+          // sqrtTermHHigh = std::sqrt(T(0.5) * gravity_ * (T(1/hMiddle_) + T(1/hRight)));
+          lsqrtTermH[1] = std::sqrt(T(0.5) * gravity_ * ((hMiddle_ + hRight) / (hMiddle_ * hRight)));
 
-          T phi = uRight - uLeft + (hMiddle - hLeft) * lsqrtTermH[0] + (hMiddle - hRight) * lsqrtTermH[1];
+          T phi = uRight - uLeft + (hMiddle_ - hLeft) * lsqrtTermH[0] + (hMiddle_ - hRight) * lsqrtTermH[1];
 
-          if (std::fabs(phi) < newtonTol) {
+          if (std::fabs(phi) < newtonTol_) {
             break;
           }
 
           T derivativePhi = lsqrtTermH[0] + lsqrtTermH[1]
-                            - T(0.25) * gravity_ * (hMiddle - hLeft) / (lsqrtTermH[0] * hMiddle * hMiddle)
-                            - T(0.25) * gravity_ * (hMiddle - hRight) / (lsqrtTermH[1] * hMiddle * hMiddle);
+                            - T(0.25) * gravity_ * (hMiddle - hLeft) / (lsqrtTermH[0] * hMiddle_ * hMiddle_)
+                            - T(0.25) * gravity_ * (hMiddle - hRight) / (lsqrtTermH[1] * hMiddle_ * hMiddle_);
 
-          hMiddle = hMiddle - phi / derivativePhi; // Newton step
+          hMiddle_ = hMiddle_ - phi / derivativePhi; // Newton step
           assert(hMiddle >= dryTol_);
 
-          // if (i == maxNumberOfNewtonIterations - 1) {
+          // if (i == maxNumberOfNewtonIterations_ - 1) {
           //   std::cerr << "Newton-Method did not converge" << std::endl;
           //   std::cerr << "std::fabs(phi): " << std::fabs(phi) << std::endl;
-          //   std::cerr << "hMiddle: " << hMiddle << std::endl;
+          //   std::cerr << "hMiddle: " << hMiddle_ << std::endl;
           //   assert(false);
           // }
         }
 
-        sqrtGhMiddle = std::sqrt(gravity_ * hMiddle);
+        sqrtGhMiddle = std::sqrt(gravity_ * hMiddle_);
 
         // Compute middle speed u_m
         //\begin{equation}
@@ -787,8 +788,8 @@ namespace Solvers {
         //\end{equation}
 
         // T uMiddleEstimates[2];
-        // uMiddleEstimates[0] = uLeft - (hMiddle - hLeft) * lsqrtTermH[0];
-        // uMiddleEstimates[1] = uRight + (hMiddle - hRight) * lsqrtTermH[1];
+        // uMiddleEstimates[0] = uLeft - (hMiddle_ - hLeft) * lsqrtTermH[0];
+        // uMiddleEstimates[1] = uRight + (hMiddle_ - hRight) * lsqrtTermH[1];
         // uMiddle = T(0.5) * (uMiddleEstimates[0] + uMiddleEstimates[1]);
 
         // Middle state speeds as they are implemented in clawpack, TODO: why?
@@ -801,12 +802,12 @@ namespace Solvers {
         //   \cite[ch. 13.8.6]{leveque2002finite}
 
         // Compute middle state height h_m
-        hMiddle = std::max(
+        hMiddle_ = std::max(
           T(0.0), uLeft - uRight + T(2.0) * (lsqrtGhLeft + lsqrtGhRight)
         ); // std::max -> Text after formula (13.56), page 279
-        hMiddle = T(1) / (T(16) * gravity_) * hMiddle * hMiddle;
+        hMiddle_ = T(1) / (T(16) * gravity_) * hMiddle_ * hMiddle_;
 
-        sqrtGhMiddle = std::sqrt(gravity_ * hMiddle);
+        sqrtGhMiddle = std::sqrt(gravity_ * hMiddle_);
 
         // Middle state speeds as they are implemented in clawpack, why?
         //        middleStateSpeeds[0] = uLeft + T(2.0) * lsqrtGhLow - T(3.0) * sqrtGhMiddle;
@@ -825,10 +826,10 @@ namespace Solvers {
           hMax = hLeft;
         }
 
-        // hMiddle = (hLeft + hRight) * T(0.618); // First estimate
-        hMiddle = hMin;
+        // hMiddle_ = (hLeft + hRight) * T(0.618); // First estimate
+        hMiddle_ = hMin;
 
-        sqrtGhMiddle = std::sqrt(gravity_ * hMiddle);
+        sqrtGhMiddle = std::sqrt(gravity_ * hMiddle_);
         T sqrtGhMax  = std::sqrt(gravity_ * hMax);
         for (int i = 0; i < maxNumberOfNewtonIterations; i++) {
           /*
@@ -862,24 +863,24 @@ namespace Solvers {
            *\end{equation}
            */
 
-          T sqrtTermHMin = std::sqrt(T(0.5) * gravity_ * ((hMiddle + hMin) / (hMiddle * hMin)));
+          T sqrtTermHMin = std::sqrt(T(0.5) * gravity_ * ((hMiddle_ + hMin) / (hMiddle_ * hMin)));
 
-          T phi = uRight - uLeft + (hMiddle - hMin) * sqrtTermHMin + T(2) * (sqrtGhMiddle - sqrtGhMax);
+          T phi = uRight - uLeft + (hMiddle_ - hMin) * sqrtTermHMin + T(2) * (sqrtGhMiddle - sqrtGhMax);
 
           if (std::fabs(phi) < newtonTol) {
             break;
           }
 
-          T derivativePhi = sqrtTermHMin - T(0.25) * gravity_ * (hMiddle - hMin) / (hMiddle * hMiddle * sqrtTermHMin)
+          T derivativePhi = sqrtTermHMin - T(0.25) * gravity_ * (hMiddle_ - hMin) / (hMiddle_ * hMiddle_ * sqrtTermHMin)
                             + sqrtG / sqrtGhMiddle;
 
-          hMiddle = hMiddle - phi / derivativePhi; // Newton step
+          hMiddle_ = hMiddle_ - phi / derivativePhi; // Newton step
 
 #ifndef NDEBUG
-          if (hMiddle < hMin) {
+          if (hMiddle_ < hMin) {
             std::cout << phi << std::endl;
             std::cout << derivativePhi << std::endl;
-            std::cerr << "hMiddle(" << hMiddle << ") < hMin(" << hMin << ")" << std::endl;
+            std::cerr << "hMiddle(" << hMiddle_ << ") < hMin(" << hMin << ")" << std::endl;
             assert(false);
           }
 #endif
@@ -887,11 +888,11 @@ namespace Solvers {
           // if (i == maxNumberOfNewtonIterations - 1) {
           //   std::cerr << "Newton-Method did not converge" << std::endl;
           //   std::cerr << "std::fabs(phi): " << std::fabs(phi) << std::endl;
-          //   std::cerr << "hMiddle: " << hMiddle << std::endl;
+          //   std::cerr << "hMiddle: " << hMiddle_ << std::endl;
           //   assert(false);
           // }
 
-          sqrtGhMiddle = std::sqrt(gravity_ * hMiddle);
+          sqrtGhMiddle = std::sqrt(gravity_ * hMiddle_);
         }
 
         // Middle state speeds as they are implemented in clawpack, TODO: why?
@@ -909,7 +910,7 @@ namespace Solvers {
       middleStateSpeeds[0] = uLeft + T(2.0) * lsqrtGhLeft - T(3.0) * sqrtGhMiddle;
       middleStateSpeeds[1] = uRight - T(2.0) * lsqrtGhRight + T(3.0) * sqrtGhMiddle;
 
-      assert(hMiddle >= 0);
+      assert(hMiddle_ >= 0);
     }
 
     /**
@@ -937,7 +938,7 @@ namespace Solvers {
         return ShockShock;
       }
 
-      if (i_hLeft < i_hRight) {
+      if (hLeft < hRight) {
         return ShockRarefaction;
       }
 
@@ -953,7 +954,7 @@ namespace Solvers {
      * @param o_x solution
      */
     static void solveLinearEquation(const T matrix[3][3], const T b[3], T o_x[3]) {
-      //#if 1
+#if 0
       // Compute inverse of 3x3 matrix
       const T m[3][3] = {
         {(matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]),
@@ -964,7 +965,7 @@ namespace Solvers {
          -(matrix[0][0] * matrix[1][2] - matrix[0][2] * matrix[1][0])},
         {(matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]),
          -(matrix[0][0] * matrix[2][1] - matrix[0][1] * matrix[2][0]),
-         (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0])}};
+         (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) }};
       T d = (matrix[0][0] * m[0][0] + matrix[0][1] * m[1][0] + matrix[0][2] * m[2][0]);
 
 #ifndef NDEBUG
@@ -989,87 +990,83 @@ namespace Solvers {
       o_x[1] = (m[1][0] * b[0] + m[1][1] * b[1] + m[1][2] * b[2]) * s;
       o_x[2] = (m[2][0] * b[0] + m[2][1] * b[1] + m[2][2] * b[2]) * s;
 
-      //      return;
-      //#else
-      //      T origDet = computeDeterminant(i_matrix);
-      //
-      //      if (std::fabs(origDet) > zeroTol) {
-      //        T modifiedMatrix[3][3];
-      //
-      //        for (int column = 0; column < 3; column++)
-      //        {
-      //          memcpy(modifiedMatrix, i_matrix, sizeof(T)*3*3);
-      //
-      //          //set a column of the matrix to i_b
-      //          modifiedMatrix[0][column] = i_b[0];
-      //          modifiedMatrix[1][column] = i_b[1];
-      //          modifiedMatrix[2][column] = i_b[2];
-      //
-      //          o_x[column] = computeDeterminant(modifiedMatrix) / origDet;
-      //        }
-      //      }
-      //      else {
-      //        std::cerr << "Warning: Linear dependent eigenvectors! (using Jacobi Solver)" << std::endl;
-      //        std::cerr << "Determinant: " << origDet << std::endl;
-      //        std::cerr << i_matrix[0][0] << "\t" << i_matrix[0][1] << "\t" << i_matrix[0][2] << std::endl;
-      //        std::cerr << i_matrix[1][0] << "\t" << i_matrix[1][1] << "\t" << i_matrix[1][2] << std::endl;
-      //        std::cerr << i_matrix[2][0] << "\t" << i_matrix[2][1] << "\t" << i_matrix[2][2] << std::endl;
-      //#if 0
-      //        T xTemp[3];
-      //        xTemp[0] = xTemp[1] = xTemp[2] = 0.;
-      //        for (int m = 0; m < 20; m++) {
-      //          for (int row = 0; row < 3; row++) {
-      //            o_x[row] = 0.;
-      //            for (int col = 0; col < 3; col++) {
-      //              if (col != row)
-      //                o_x[row] += i_matrix[row][col]*xTemp[col];
-      //            }
-      //            o_x[row] = (i_b[row] - o_x[row])/i_matrix[row][row];
-      //          }
-      //
-      //          if (fabs(o_x[0]-xTemp[0]) + fabs(o_x[1]-xTemp[1]) + fabs(o_x[2]-xTemp[2]) < zeroTol*10.)
-      //            break;
-      //          else {
-      //            std::cout << "Error: " << fabs(o_x[0]-xTemp[0]) + fabs(o_x[1]-xTemp[1]) + fabs(o_x[2]-xTemp[2]) <<
-      //            std::endl; xTemp[0] = o_x[0]; xTemp[1] = o_x[1]; xTemp[2] = o_x[2];
-      //          }
-      //        }
-      //        std::cout << "Solution:" << std::endl;
-      //        std::cout << "\t" << o_x[0] << std::endl;
-      //        std::cout << "x=\t" << o_x[1] << std::endl;
-      //        std::cout << "\t" << o_x[2] << std::endl;
-      //        std::cout << "*********" << std::endl;
-      //        std::cout << "\t" << i_b[0] << std::endl;
-      //        std::cout << "b=\t" << i_b[1] << std::endl;
-      //        std::cout << "\t" << i_b[2] << std::endl;
-      //        std::cout << "***A*x****" << std::endl;
-      //        for (int row = 0; row < 3; row++) {
-      //          std::cout << "\t" <<
-      //              i_matrix[row][0] * o_x[0] +
-      //              i_matrix[row][1] * o_x[1] +
-      //              i_matrix[row][2] * o_x[2] << std::endl;
-      //        }
-      //#endif
-      //        assert(false);
-      //      }
-      //#endif
+#else
+      T origDet = computeDeterminant(i_matrix);
+
+      if (std::fabs(origDet) > zeroTol) {
+        T modifiedMatrix[3][3]{};
+
+        for (int column = 0; column < 3; column++) {
+          memcpy(modifiedMatrix, i_matrix, sizeof(T) * 3 * 3);
+
+          // set a column of the matrix to i_b
+          modifiedMatrix[0][column] = i_b[0];
+          modifiedMatrix[1][column] = i_b[1];
+          modifiedMatrix[2][column] = i_b[2];
+
+          o_x[column] = computeDeterminant(modifiedMatrix) / origDet;
+        }
+      } else {
+        std::cerr << "Warning: Linear dependent eigenvectors! (using Jacobi Solver)" << std::endl;
+        std::cerr << "Determinant: " << origDet << std::endl;
+        std::cerr << i_matrix[0][0] << "\t" << i_matrix[0][1] << "\t" << i_matrix[0][2] << std::endl;
+        std::cerr << i_matrix[1][0] << "\t" << i_matrix[1][1] << "\t" << i_matrix[1][2] << std::endl;
+        std::cerr << i_matrix[2][0] << "\t" << i_matrix[2][1] << "\t" << i_matrix[2][2] << std::endl;
+#if 1
+        T xTemp[3]{};
+        xTemp[0] = xTemp[1] = xTemp[2] = T(0.0);
+        for (int m = 0; m < 20; m++) {
+          for (int row = 0; row < 3; row++) {
+            o_x[row] = 0.;
+            for (int col = 0; col < 3; col++) {
+              if (col != row) {
+                o_x[row] += matrix[row][col] * xTemp[col];
+              }
+            }
+            o_x[row] = (b[row] - o_x[row]) / matrix[row][row];
+          }
+
+          if (fabs(o_x[0] - xTemp[0]) + fabs(o_x[1] - xTemp[1]) + fabs(o_x[2] - xTemp[2]) < zeroTol * 10.) {
+            break;
+          } else {
+            std::cout
+              << "Error: " << fabs(o_x[0] - xTemp[0]) + fabs(o_x[1] - xTemp[1]) + fabs(o_x[2] - xTemp[2]) << std::endl;
+            xTemp[0] = o_x[0];
+            xTemp[1] = o_x[1];
+            xTemp[2] = o_x[2];
+          }
+        }
+        std::cout << "Solution:" << std::endl;
+        std::cout << "\t" << o_x[0] << std::endl;
+        std::cout << "x=\t" << o_x[1] << std::endl;
+        std::cout << "\t" << o_x[2] << std::endl;
+        std::cout << "*********" << std::endl;
+        std::cout << "\t" << b[0] << std::endl;
+        std::cout << "b=\t" << b[1] << std::endl;
+        std::cout << "\t" << b[2] << std::endl;
+        std::cout << "***A*x****" << std::endl;
+        for (int row = 0; row < 3; row++) {
+          std::cout << "\t" << matrix[row][0] * o_x[0] + matrix[row][1] * o_x[1] + matrix[row][2] * o_x[2] << std::endl;
+        }
+#endif
+        assert(false);
+      }
+#endif
     }
-    //#if 0
-    //    /**
-    //     * Compute the determinant of a 3x3 matrix
-    //     * using formula: |A|=a11 * (a22a33-a32a23) + a12 * (a23a31-a33a21) + a13 * (a21a32-a31a22)
-    //     *                |A|=a00 * (a11a22-a21a12) + a01 * (a12a20-a22a10) + a02 * (a10a21-a20a11)
-    //     */
-    //    T computeDeterminant(T matrix[3][3]) const
-    //    {
-    //
-    //      T determinant =     matrix[0][0] * ( matrix[1][1] * matrix[2][2] - matrix[2][1] * matrix[1][2] )
-    //                        		    + matrix[0][1] * ( matrix[1][2] * matrix[2][0] - matrix[2][2] * matrix[1][0] )
-    //                        		    + matrix[0][2] * ( matrix[1][0] * matrix[2][1] - matrix[2][0] * matrix[1][1] );
-    //
-    //      return determinant;
-    //    }
-    //#endif
+
+#if 0
+    /**
+     * Compute the determinant of a 3x3 matrix
+     * using formula: |A|=a11 * (a22a33-a32a23) + a12 * (a23a31-a33a21) + a13 * (a21a32-a31a22)
+     *                |A|=a00 * (a11a22-a21a12) + a01 * (a12a20-a22a10) + a02 * (a10a21-a20a11)
+     */
+    T computeDeterminant(T matrix[3][3]) const {
+      T determinant = matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[2][1] * matrix[1][2])
+                      + matrix[0][1] * (matrix[1][2] * matrix[2][0] - matrix[2][2] * matrix[1][0])
+                      + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[2][0] * matrix[1][1]);
+      return determinant;
+    }
+#endif
 
 #undef sqrtGhLeft
 #undef sqrtGhRight

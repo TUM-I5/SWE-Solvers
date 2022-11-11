@@ -21,17 +21,17 @@ namespace Solvers {
     T b_[2];
     T u_[2];
 
-#define hLeft (h[0])
-#define hRight (h[1])
+#define hLeft_ (h_[0])
+#define hRight_ (h_[1])
 
-#define huLeft (hu[0])
-#define huRight (hu[1])
+#define huLeft_ (hu_[0])
+#define huRight_ (hu_[1])
 
-#define bLeft (b[0])
-#define bRight (b[1])
+#define bLeft_ (b_[0])
+#define bRight_ (b_[1])
 
-#define uLeft (u[0])
-#define uRight (u[1])
+#define uLeft_ (u_[0])
+#define uRight_ (u_[1])
 #else
     //! Edge-local variables.
     T hLeft_;   //! Height on the left side of the edge (could change during execution).
