@@ -110,14 +110,14 @@ namespace Solvers {
 
     using WavePropagationSolver<T>::wetDryState_;
 
-    using WavePropagation<T>::WetDryState::DryDry;
-    using WavePropagation<T>::WetDryState::WetWet;
-    using WavePropagation<T>::WetDryState::WetDryInundation;
-    using WavePropagation<T>::WetDryState::WetDryWall;
-    using WavePropagation<T>::WetDryState::WetDryWallInundation;
-    using WavePropagation<T>::WetDryState::DryWetInundation;
-    using WavePropagation<T>::WetDryState::DryWetWall;
-    using WavePropagation<T>::WetDryState::DryWetWallInundation;
+    using WavePropagationSolver<T>::WetDryState::DryDry;
+    using WavePropagationSolver<T>::WetDryState::WetWet;
+    using WavePropagationSolver<T>::WetDryState::WetDryInundation;
+    using WavePropagationSolver<T>::WetDryState::WetDryWall;
+    using WavePropagationSolver<T>::WetDryState::WetDryWallInundation;
+    using WavePropagationSolver<T>::WetDryState::DryWetInundation;
+    using WavePropagationSolver<T>::WetDryState::DryWetWall;
+    using WavePropagationSolver<T>::WetDryState::DryWetWallInundation;
 
     //! Newton-tolerance (exit Newton-Raphson-method, if we are close enough to the root)
     const T newtonTol_;
@@ -354,7 +354,7 @@ namespace Solvers {
         if (hMiddle_ + bRight_ > bLeft_) {
           // Momentum is large enough, continue with the original values
           //          bLeft = hMiddle + bRight;
-          wetDryState_ = WavePropagationSolver<T>::WetDryState::DryWetInundationDryWetWallInundation;
+          wetDryState_ = WavePropagationSolver<T>::WetDryState::DryWetWallInundation;
         } else {
           // Momentum is not large enough, use wall-boundary-values
           hLeft_  = hRight_;
@@ -550,14 +550,14 @@ namespace Solvers {
       // Compute steady state wave
       //   \cite[ch. 4.2.1 \& app. A]{george2008augmented}, \cite[ch. 6.2 \& ch. 4.4]{george2006finite}
       T steadyStateWave[2]{};
-      T hBar = (hLeft + hRight) * T(0.5);
+      T hBar = (hLeft_ + hRight_) * T(0.5);
 #ifdef COMPLEX_STEADY_STATE_WAVE
       T lLambdaBar = (uLeft_ + uRight_) * (uLeft_ + uRight_) * T(0.25) - gravity_ * hBar;
 
       T lLambdaTilde = std::max(T(0.0), uLeft_ * uRight_) - gravity_ * hBar;
 
       // Near sonic as defined in geoclaw (TODO: literature?)
-      if ((std::fabs(lLambdaBar) < zeroTol_) || (lLambdaBar * lLambdaTilde < zeroTol_) || (lLambdaBar * eigenValues[0] * eigenValues[1] < zeroTol_) || (std::min(std::fabs(eigenValues[0]), std::fabs(eigenValues[2])) < zeroTol_) || (eigenValues[0] < T(0.0) && middleStateSpeeds_[0] > T(0.0)) || (eigenValues[2] > T(0.0) && middleStateSpeeds_[1] < T(0.0)) || ((uLeft + sqrt(gravity_ * hLeft_)) * (uRight_ + sqrt(gravity_ * hRight_)) < T(0.0)) || ((uLeft_ - sqrt(gravity_ * hLeft_)) * (uRight_ - sqrt(gravity_ * hRight_)) < T(0.0))) {
+      if ((std::fabs(lLambdaBar) < zeroTol_) || (lLambdaBar * lLambdaTilde < zeroTol_) || (lLambdaBar * eigenValues[0] * eigenValues[1] < zeroTol_) || (std::min(std::fabs(eigenValues[0]), std::fabs(eigenValues[2])) < zeroTol_) || (eigenValues[0] < T(0.0) && middleStateSpeeds_[0] > T(0.0)) || (eigenValues[2] > T(0.0) && middleStateSpeeds_[1] < T(0.0)) || ((uLeft_ + sqrt(gravity_ * hLeft_)) * (uRight_ + sqrt(gravity_ * hRight_)) < T(0.0)) || ((uLeft_ - sqrt(gravity_ * hLeft_)) * (uRight_ - sqrt(gravity_ * hRight_)) < T(0.0))) {
 #endif
         steadyStateWave[0] = -(bRight_ - bLeft_);
         steadyStateWave[1] = -gravity_ * hBar * (bRight_ - bLeft_);
@@ -575,7 +575,7 @@ namespace Solvers {
 
       // Preserve depth-positivity
       //   \cite[ch. 6.5.2]{george2006finite}, \cite[ch. 4.2.3]{george2008augmented}
-      if (eigenValues[0] < -zeroTol && eigenValues[2] > zeroTol) { // Subsonic
+      if (eigenValues[0] < -zeroTol_ && eigenValues[2] > zeroTol_) { // Subsonic
         steadyStateWave[0] = std::max(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[0]
         );
@@ -583,7 +583,7 @@ namespace Solvers {
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[2]
         );
       } else if (eigenValues[0] > zeroTol) { // Supersonic right TODO: motivation?
-        steadyStateWave[0] = std::max(steadyStateWave[0], -hLeft);
+        steadyStateWave[0] = std::max(steadyStateWave[0], -hLeft_);
         steadyStateWave[0] = std::min(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[0]
         );
@@ -591,16 +591,16 @@ namespace Solvers {
         steadyStateWave[0] = std::max(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[2]
         );
-        steadyStateWave[0] = std::min(steadyStateWave[0], hRight);
+        steadyStateWave[0] = std::min(steadyStateWave[0], hRight_);
       }
 
       // Limit the effect of the source term
       //   \cite[ch. 6.4.2]{george2006finite}
       steadyStateWave[1] = std::min(
-        steadyStateWave[1], gravity_ * std::max(-hLeft * (bRight - bLeft), -hRight * (bRight - bLeft))
+        steadyStateWave[1], gravity_ * std::max(-hLeft_ * (bRight_ - bLeft_), -hRight_ * (bRight_ - bLeft_))
       );
       steadyStateWave[1] = std::max(
-        steadyStateWave[1], gravity_ * std::min(-hLeft * (bRight - bLeft), -hRight * (bRight - bLeft))
+        steadyStateWave[1], gravity_ * std::min(-hLeft_ * (bRight_ - bLeft_), -hRight_ * (bRight_ - bLeft_))
       );
 
       // No source term in the case of a wall
@@ -769,8 +769,8 @@ namespace Solvers {
           }
 
           T derivativePhi = lsqrtTermH[0] + lsqrtTermH[1]
-                            - T(0.25) * gravity_ * (hMiddle - hLeft) / (lsqrtTermH[0] * hMiddle_ * hMiddle_)
-                            - T(0.25) * gravity_ * (hMiddle - hRight) / (lsqrtTermH[1] * hMiddle_ * hMiddle_);
+                            - T(0.25) * gravity_ * (hMiddle_ - hLeft) / (lsqrtTermH[0] * hMiddle_ * hMiddle_)
+                            - T(0.25) * gravity_ * (hMiddle_ - hRight) / (lsqrtTermH[1] * hMiddle_ * hMiddle_);
 
           hMiddle_ = hMiddle_ - phi / derivativePhi; // Newton step
           assert(hMiddle >= dryTol_);
@@ -1035,7 +1035,7 @@ namespace Solvers {
             o_x[row] = (b[row] - o_x[row]) / matrix[row][row];
           }
 
-          if (fabs(o_x[0] - xTemp[0]) + fabs(o_x[1] - xTemp[1]) + fabs(o_x[2] - xTemp[2]) < zeroTol * 10.) {
+          if (fabs(o_x[0] - xTemp[0]) + fabs(o_x[1] - xTemp[1]) + fabs(o_x[2] - xTemp[2]) < zeroTol_ * 10.) {
             break;
           } else {
             std::cout
