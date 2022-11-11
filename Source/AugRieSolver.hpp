@@ -81,8 +81,8 @@
  *
  *  TODO: Further investigation is recommended.
  */
-#define CORRECT_RARE_FACTIONS
-#define COMPLEX_STEADY_STATE_WAVE
+//#define CORRECT_RARE_FACTIONS
+//#define COMPLEX_STEADY_STATE_WAVE
 
 namespace Solvers {
 
@@ -582,7 +582,7 @@ namespace Solvers {
         steadyStateWave[0] = std::min(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[2]
         );
-      } else if (eigenValues[0] > zeroTol) { // Supersonic right TODO: motivation?
+      } else if (eigenValues[0] > zeroTol_) { // Supersonic right TODO: motivation?
         steadyStateWave[0] = std::max(steadyStateWave[0], -hLeft_);
         steadyStateWave[0] = std::min(
           steadyStateWave[0], hLLMiddleHeight * (eigenValues[2] - eigenValues[0]) / eigenValues[0]
@@ -963,7 +963,7 @@ namespace Solvers {
      * @param o_x solution
      */
     static void solveLinearEquation(const T matrix[3][3], const T b[3], T o_x[3]) {
-#if 0
+#if 1
       // Compute inverse of 3x3 matrix
       const T m[3][3] = {
         {(matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]),
@@ -1063,7 +1063,7 @@ namespace Solvers {
 #endif
     }
 
-#if 1
+#if 0
     /**
      * Compute the determinant of a 3x3 matrix
      * using formula: |A|=a11 * (a22a33-a32a23) + a12 * (a23a31-a33a21) + a13 * (a21a32-a31a22)

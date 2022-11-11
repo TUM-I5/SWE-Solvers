@@ -9,7 +9,8 @@ namespace Solvers {
    */
   template <class T>
   class WavePropagationSolver {
-  protected:
+    // protected:
+  public:
     T       dryTol_;  //! Numerical definition of "dry".
     const T gravity_; //! Gravity constant.
     const T zeroTol_; //! Numerical definition of zero.
