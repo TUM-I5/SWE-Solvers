@@ -1,29 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
-
-if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
-    execute_process(
-        COMMAND git rev-parse --abbrev-ref HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_BRANCH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    execute_process(
-        COMMAND git rev-parse HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    execute_process(
-        COMMAND git rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_COMMIT_HASH_SHORT
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-else()
-    set(GIT_BRANCH "")
-    set(GIT_COMMIT_HASH "")
-    set(GIT_COMMIT_HASH_SHORT "")
-endif()
+cmake_minimum_required(VERSION 3.21)
 
 set(META_PROJECT_NAME        "SWE-Solvers")
 set(META_PROJECT_DESCRIPTION "Solvers for the Shallow Water Equations")
@@ -53,9 +28,4 @@ project(${META_PROJECT_NAME}
 )
 file(WRITE "${PROJECT_BINARY_DIR}/.gitignore" "*")
 
-add_subdirectory(CMake)
-include(Clang-Format)
-include(Doxygen)
-
 add_subdirectory(Source)
-
